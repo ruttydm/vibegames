@@ -2,6 +2,8 @@
 import { SnakeGame, type Direction, type GameState } from '~/games/snake/engine'
 import { SnakeRenderer } from '~/games/snake/renderer'
 
+const { playSfx, startSong, stopSong } = useAudio()
+
 interface Props {
   mode: 'singleplayer' | 'multiplayer'
   playerId?: string
@@ -65,6 +67,10 @@ onMounted(() => {
     // Check for score changes
     const snake = state.snakes.get(props.playerId)
     if (snake && snake.score !== lastScore.value) {
+      // Only play eat sound if score increased (not on initial state)
+      if (lastScore.value > 0 || snake.score > 0) {
+        playSfx('snake.eat')
+      }
       lastScore.value = snake.score
       emit('score', snake.score)
     }
@@ -74,6 +80,8 @@ onMounted(() => {
   })
 
   game.value.setOnGameOver((winner) => {
+    stopSong()
+    playSfx('snake.die')
     emit('gameOver', winner)
     renderGameOver()
   })
@@ -105,17 +113,28 @@ function initializeGame() {
 async function startGame() {
   if (!game.value || isStarted.value) return
 
-  // Countdown
+  // Countdown with audio
   for (let i = 3; i >= 0; i--) {
     countdown.value = i
     renderer.value?.render(game.value.getState())
     renderer.value?.drawCountdown(i)
+
+    // Play countdown sounds
+    if (i > 0) {
+      playSfx('countdown.beep')
+    } else {
+      playSfx('countdown.go')
+    }
+
     await new Promise(resolve => setTimeout(resolve, 800))
   }
 
   countdown.value = -1
   isStarted.value = true
   game.value.start()
+
+  // Start theme song
+  startSong('snake')
 }
 
 function restartGame() {
@@ -130,9 +149,11 @@ function togglePause() {
 
   if (isPaused.value) {
     game.value.stop()
+    stopSong()
     renderer.value?.drawPaused()
   } else {
     game.value.start()
+    startSong('snake')
   }
 }
 
@@ -199,6 +220,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   game.value?.stop()
+  stopSong()
 })
 
 // Expose methods for multiplayer control

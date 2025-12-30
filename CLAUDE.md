@@ -16,7 +16,9 @@ Retro-styled arcade games portal built with Nuxt 4, Tailwind CSS 4, and shadcn-v
 - `app/components/ui/` - shadcn-vue components (Button, Badge, Card, Input, etc.)
 - `app/components/layout/` - AppHeader, AppFooter
 - `app/components/game/` - Game components (SnakeGame, etc.)
-- `app/composables/` - Shared composables (useGames, useMultiplayer, usePlayer, useLocalScores)
+- `app/composables/` - Shared composables (useGames, useMultiplayer, usePlayer, useLocalScores, useAudio)
+- `app/audio/` - Core audio engine and generic SFX
+- `app/games/[slug]/audio.ts` - Game-specific audio (SFX + theme songs)
 - `app/pages/games/[slug].vue` - Individual game page with mode selection and multiplayer
 - `server/routes/_ws.ts` - WebSocket handler for multiplayer
 - `server/utils/lobbyManager.ts` - Multiplayer lobby management
@@ -68,6 +70,31 @@ Game components in `app/components/game/` must:
 - SVG thumbnails: 320x180 viewBox, neon glow filters, arcade aesthetic
 - No external image URLs - all assets must be local
 - Use Iconify icons with `mdi:` prefix
+
+## Audio System
+
+The audio engine uses Tone.js for synthesized 8-bit sounds - no audio files needed.
+
+- `useAudio()` composable provides: `playSfx()`, `startSong()`, `stopSong()`, `toggleMute()`
+- Generic SFX are in `app/audio/sfx.ts` with names like `'countdown.beep'`, `'ui.click'`
+- Game-specific audio (SFX + theme songs) live in game folders: `app/games/[slug]/audio.ts`
+- Songs are registered in `app/audio/songs/index.ts` (imports from game folders)
+- Audio settings (mute state) persist to localStorage
+- Theme songs play during gameplay only, stop on pause/game over
+
+### Audio in Game Components
+
+```typescript
+const { playSfx, startSong, stopSong } = useAudio()
+
+// Play SFX on events
+playSfx('countdown.beep')
+playSfx('snake.eat')
+
+// Start/stop theme song with game state
+startSong('snake')  // After countdown
+stopSong()          // On pause, game over, or unmount
+```
 
 ## Adding New Games
 

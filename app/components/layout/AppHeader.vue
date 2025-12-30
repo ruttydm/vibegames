@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { playerName, isEditingName, initPlayer, setPlayerName, randomizeName, toggleEdit, closeEdit } = usePlayer()
+const { isMuted, toggleMute } = useAudio()
 
 const menuOpen = ref(false)
 const editInput = ref('')
@@ -73,7 +74,7 @@ const handleBackdropClick = () => {
           </NuxtLink>
         </nav>
 
-        <!-- Right side: Search + Username -->
+        <!-- Right side: Search + Audio + Username -->
         <div class="hidden md:flex items-center gap-4">
           <!-- Search -->
           <div class="relative">
@@ -84,6 +85,19 @@ const handleBackdropClick = () => {
               class="w-48 lg:w-64 bg-arcade-surface border border-arcade-border pl-10 pr-4 py-2 font-retro text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-neon-cyan transition-colors"
             />
           </div>
+
+          <!-- Mute Toggle -->
+          <button
+            class="p-2 bg-arcade-surface border border-arcade-border hover:border-neon-yellow transition-colors group"
+            :title="isMuted ? 'Unmute audio' : 'Mute audio'"
+            @click="toggleMute"
+          >
+            <Icon
+              :name="isMuted ? 'mdi:volume-off' : 'mdi:volume-high'"
+              class="text-lg transition-colors"
+              :class="isMuted ? 'text-text-muted' : 'text-neon-yellow'"
+            />
+          </button>
 
           <!-- Username Display -->
           <button
@@ -98,8 +112,21 @@ const handleBackdropClick = () => {
           </button>
         </div>
 
-        <!-- Mobile: Username + Menu Button -->
+        <!-- Mobile: Audio + Username + Menu Button -->
         <div class="md:hidden flex items-center gap-2">
+          <!-- Mobile Mute Toggle -->
+          <button
+            class="p-2 bg-arcade-surface border border-arcade-border"
+            :title="isMuted ? 'Unmute audio' : 'Mute audio'"
+            @click="toggleMute"
+          >
+            <Icon
+              :name="isMuted ? 'mdi:volume-off' : 'mdi:volume-high'"
+              class="text-sm"
+              :class="isMuted ? 'text-text-muted' : 'text-neon-yellow'"
+            />
+          </button>
+
           <!-- Mobile Username -->
           <button
             class="flex items-center gap-1 px-2 py-1 bg-arcade-surface border border-arcade-border"

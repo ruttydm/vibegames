@@ -529,6 +529,11 @@ const hasGameComponent = computed(() => {
 - [ ] Pause/resume works
 - [ ] Restart works
 - [ ] Multiplayer props passed (if mode is 'both' or 'multiplayer')
+- [ ] Audio: useAudio composable integrated
+- [ ] Audio: Countdown sounds play (countdown.beep, countdown.go)
+- [ ] Audio: Theme song starts after countdown, stops on pause/game over
+- [ ] Audio: SFX play on game events (eat, die, score, etc.)
+- [ ] Audio: stopSong() called in onUnmounted
 
 ---
 
@@ -557,3 +562,155 @@ If your game supports multiplayer:
    ```
 
 4. **Add players array** to engine for multiplayer state tracking
+
+---
+
+## Audio Integration
+
+### Step 1: Add useAudio composable
+
+```typescript
+const { playSfx, startSong, stopSong } = useAudio()
+```
+
+### Step 2: Add countdown sounds
+
+```typescript
+async function startGame() {
+  for (let i = 3; i >= 0; i--) {
+    if (i > 0) {
+      playSfx('countdown.beep')
+    } else {
+      playSfx('countdown.go')
+    }
+    await new Promise(resolve => setTimeout(resolve, 800))
+  }
+
+  // Start theme song after countdown
+  startSong('your-game')
+  game.value.start()
+}
+```
+
+### Step 3: Handle pause/game over
+
+```typescript
+function togglePause() {
+  isPaused.value = !isPaused.value
+
+  if (isPaused.value) {
+    game.value.stop()
+    stopSong()
+  } else {
+    game.value.start()
+    startSong('your-game')
+  }
+}
+
+game.value.setOnGameOver((winner) => {
+  stopSong()
+  playSfx('game.over')  // or custom SFX
+  emit('gameOver', winner)
+})
+```
+
+### Step 4: Add game event SFX
+
+```typescript
+// Play SFX on score changes
+if (score > lastScore) {
+  playSfx('your-game.score')  // Define in app/audio/sfx.ts
+}
+```
+
+### Step 5: Stop song on unmount
+
+```typescript
+onUnmounted(() => {
+  game.value?.stop()
+  stopSong()
+})
+```
+
+### Step 6: Create game-specific audio file
+
+Create `app/games/your-game/audio.ts` with both SFX and theme song:
+
+```typescript
+import { Tone, getAudioEngine } from '~/audio/engine'
+
+// =============================================================================
+// Your Game Sound Effects
+// =============================================================================
+
+export function playYourGameScore(): void {
+  const engine = getAudioEngine()
+  const output = engine.getMasterOutput()
+  if (!output || !engine.isInitialized()) return
+
+  // Define your SFX using Tone.js synths
+  const synth = new Tone.Synth({
+    oscillator: { type: 'square' },
+    envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.05 }
+  }).connect(output)
+
+  synth.triggerAttackRelease('C5', '16n')
+  setTimeout(() => synth.dispose(), 200)
+}
+
+// =============================================================================
+// Your Game Theme Song
+// =============================================================================
+
+export function createYourGameSong() {
+  const engine = getAudioEngine()
+  const output = engine.getMasterOutput()
+
+  if (!output) {
+    return { start: () => {}, stop: () => {}, dispose: () => {} }
+  }
+
+  // Create synths and sequences
+  // See app/games/snake/audio.ts for full example
+
+  return {
+    start: () => { /* start sequences */ },
+    stop: () => { /* stop sequences */ },
+    dispose: () => { /* clean up synths */ }
+  }
+}
+```
+
+Register song in `app/audio/songs/index.ts`:
+
+```typescript
+import { createYourGameSong } from '~/games/your-game/audio'
+
+const songs = {
+  snake: createSnakeSong,
+  'your-game': createYourGameSong  // Add your song
+}
+```
+
+Register SFX in `app/audio/sfx.ts`:
+
+```typescript
+import { playYourGameScore } from '~/games/your-game/audio'
+
+// In sfxRegistry:
+'your-game.score': playYourGameScore
+```
+
+### Available SFX
+
+| Name | Usage |
+|------|-------|
+| `countdown.beep` | Countdown 3, 2, 1 |
+| `countdown.go` | "GO!" moment |
+| `ui.click` | Button press |
+| `game.over` | Generic game over |
+| `score.up` | Score increase |
+| `powerup` | Power-up collected |
+| `victory` | Win state |
+
+Add game-specific SFX in `app/audio/sfx.ts` following the existing patterns

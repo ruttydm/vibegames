@@ -110,6 +110,20 @@ const games: Game[] = [
       { key: 'Up', action: 'Accelerate' },
       { key: 'Down', action: 'Brake' }
     ]
+  },
+  {
+    slug: 'evosim',
+    title: 'EvoSim: Nodes',
+    description: 'Multicellular evolution simulator. Watch organisms evolve, hunt, and reproduce in a living ecosystem.',
+    thumbnail: '/games/evosim/thumbnail.svg',
+    categories: ['simulation', 'strategy'],
+    mode: 'singleplayer',
+    controls: [
+      { key: 'Left-Click Drag', action: 'Pan camera' },
+      { key: 'Right-Click', action: 'Select organism / Spawn food' },
+      { key: 'Scroll', action: 'Zoom in/out' }
+    ],
+    featured: true
   }
 ]
 
@@ -122,7 +136,8 @@ const categories: Category[] = [
   { slug: 'sports', name: 'Sports', icon: 'mdi:basketball' },
   { slug: 'card', name: 'Card', icon: 'mdi:cards' },
   { slug: 'strategy', name: 'Strategy', icon: 'mdi:chess-knight' },
-  { slug: 'party', name: 'Party', icon: 'mdi:party-popper' }
+  { slug: 'party', name: 'Party', icon: 'mdi:party-popper' },
+  { slug: 'simulation', name: 'Simulation', icon: 'mdi:dna' }
 ]
 
 export function useGames() {

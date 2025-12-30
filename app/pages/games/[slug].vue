@@ -26,6 +26,7 @@ const relatedGames = computed(() => {
 const gameMode = ref<'select' | 'singleplayer' | 'multiplayer'>('select')
 const isFullscreen = ref(false)
 const currentScore = ref(0)
+const gameContainerRef = ref<HTMLElement | null>(null)
 
 // Multiplayer state
 const multiplayer = useMultiplayer()
@@ -33,25 +34,35 @@ const showCreateLobby = ref(false)
 const joinCode = ref('')
 const joinError = ref('')
 
-const toggleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value
-}
+const toggleFullscreen = async () => {
+  if (!gameContainerRef.value) return
 
-// ESC key handler for fullscreen exit
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && isFullscreen.value) {
-    isFullscreen.value = false
+  try {
+    if (!document.fullscreenElement) {
+      await gameContainerRef.value.requestFullscreen()
+      isFullscreen.value = true
+    } else {
+      await document.exitFullscreen()
+      isFullscreen.value = false
+    }
+  } catch (err) {
+    console.error('Fullscreen error:', err)
   }
 }
 
-// Initialize player and keyboard listeners
+// Handle fullscreen change (e.g., user presses ESC)
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
+// Initialize player and fullscreen listeners
 onMounted(() => {
   initPlayer()
-  window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 // Mode selection
@@ -124,7 +135,7 @@ watch(() => multiplayer.lobby.error, (error) => {
 
 // Check if game component exists for this slug
 const hasGameComponent = computed(() => {
-  return ['snake'].includes(slug)
+  return ['snake', 'evosim'].includes(slug)
 })
 
 const multiplayerPlayers = computed(() => {
@@ -270,13 +281,14 @@ useSeoMeta({
       <!-- Game Container -->
       <div
         v-if="gameMode !== 'select' && (gameMode === 'singleplayer' || multiplayer.lobby.status === 'playing')"
+        ref="gameContainerRef"
         :class="[
-          'relative bg-arcade-bg border-4 border-arcade-border mb-8',
-          isFullscreen && 'fixed inset-0 z-50 border-0 flex items-center justify-center'
+          'relative bg-arcade-bg',
+          isFullscreen ? 'w-screen h-screen' : 'border-4 border-arcade-border mb-8'
         ]"
       >
         <!-- Snake Game -->
-        <div v-if="slug === 'snake'" class="flex justify-center p-4">
+        <div v-if="slug === 'snake'" :class="isFullscreen ? 'flex items-center justify-center w-full h-full' : 'flex justify-center p-4'">
           <SnakeGame
             :mode="gameMode"
             :player-id="multiplayer.lobby.currentPlayer?.id || 'player1'"
@@ -286,6 +298,11 @@ useSeoMeta({
             @game-over="handleGameOver"
             @action="handleGameAction"
           />
+        </div>
+
+        <!-- EvoSim Game -->
+        <div v-else-if="slug === 'evosim'" class="w-full h-full">
+          <EvoSimGame :is-fullscreen="isFullscreen" />
         </div>
 
         <!-- Placeholder for other games -->
