@@ -1,4 +1,9 @@
 import * as PIXI from 'pixi.js'
+import { generateInitialBrain, mutateBrain, type BrainGenome } from './genome'
+
+// Re-export brain types
+export type { BrainGenome, NeuronGene, ConnectionGene } from './genome'
+export { generateInitialBrain, mutateBrain, getBrainStats } from './genome'
 
 // Constants
 export const WORLD_W = 8000
@@ -22,7 +27,13 @@ export const CONFIG = {
   efficiencyPlantToHerbivore: 0.15,  // 15% - ectotherms are more efficient
   efficiencyHerbivoreToPredator: 0.10, // 10% - standard trophic transfer
   efficiencyPredatorToPredator: 0.05,  // 5% - apex predators, very inefficient
-  photoEfficiency: 0.08               // Passive energy from photosynthesis per leaf
+  batteryCapacity: 50,                // Extra energy capacity per battery cell
+  // Neural network mutation rates
+  brainMutationRate: 0.8,      // Chance to mutate weights
+  addConnectionRate: 0.05,     // Chance to add connection
+  addNeuronRate: 0.03,         // Chance to add hidden neuron
+  removeConnectionRate: 0.02,  // Chance to remove connection
+  weightMutationPower: 0.5     // Max weight change per mutation
 }
 
 export const TYPE_DEFS = {
@@ -30,7 +41,7 @@ export const TYPE_DEFS = {
   MOUTH: { id: 1, color: 0x10b981, size: 6, cost: 1 },
   MOVER: { id: 2, color: 0x3b82f6, size: 6, cost: 0.8 },
   SPIKE: { id: 3, color: 0xef4444, size: 5, cost: 0.5 },
-  LEAF: { id: 4, color: 0x115e59, size: 7, cost: 0.5 },
+  BATTERY: { id: 4, color: 0xfbbf24, size: 8, cost: 0.6 },  // Yellow energy storage
   ARMOR: { id: 5, color: 0x7c3aed, size: 7, cost: 1.2 },
   EYE: { id: 6, color: 0xffffff, size: 5, cost: 1.0 }
 }
@@ -100,6 +111,7 @@ export interface GenomeNode {
 export interface DNA {
   hue: number
   root: GenomeNode
+  brain: BrainGenome
 }
 
 export function generateRandomGenome(depth = 0): GenomeNode {
@@ -141,12 +153,12 @@ export function hslToHex(h: number, s: number, l: number): number {
   return parseInt(`0x${f(0)}${f(8)}${f(4)}`)
 }
 
-export function getRoleName(s: { damage: number; mouth: number; photo: number; armor: number; speedMod: number }): string {
+export function getRoleName(s: { damage: number; mouth: number; battery: number; armor: number; speedMod: number }): string {
   if (s.damage > 5) return 'Predator'
-  if (s.mouth > 2 && s.photo > 0) return 'Omnivore'
-  if (s.photo > 0.2) return 'Plant'
+  if (s.battery > 2) return 'Hoarder'
   if (s.armor > 2) return 'Tank'
   if (s.speedMod > 3) return 'Scout'
+  if (s.mouth > 2) return 'Grazer'
   return 'Organism'
 }
 
@@ -164,7 +176,7 @@ export function createPredatorGenome(): DNA {
       { type: TYPE_DEFS.MOVER.id, angle: -2.5, length: 15, children: [] }
     ]
   }
-  return { hue: 0, root }
+  return { hue: 0, root, brain: generateInitialBrain() }
 }
 
 // Prey genome template
@@ -175,12 +187,12 @@ export function createPreyGenome(): DNA {
     length: 0,
     children: [
       { type: TYPE_DEFS.MOUTH.id, angle: 0, length: 12, children: [] },
-      { type: TYPE_DEFS.LEAF.id, angle: 2, length: 15, children: [] },
-      { type: TYPE_DEFS.LEAF.id, angle: -2, length: 15, children: [] },
+      { type: TYPE_DEFS.BATTERY.id, angle: 2, length: 15, children: [] },
+      { type: TYPE_DEFS.BATTERY.id, angle: -2, length: 15, children: [] },
       { type: TYPE_DEFS.MOVER.id, angle: 3.14, length: 10, children: [] }
     ]
   }
-  return { hue: 120, root }
+  return { hue: 120, root, brain: generateInitialBrain() }
 }
 
 // Mutation function
@@ -216,6 +228,17 @@ export function mutate(dna: DNA): DNA {
   }
 
   mutateNode(newDna.root)
+
+  // Mutate brain using neural network mutation rates
+  newDna.brain = mutateBrain(newDna.brain, {
+    weightMutation: CONFIG.brainMutationRate,
+    addConnection: CONFIG.addConnectionRate,
+    addNeuron: CONFIG.addNeuronRate,
+    removeConnection: CONFIG.removeConnectionRate,
+    toggleConnection: 0.01,
+    weightPower: CONFIG.weightMutationPower
+  })
+
   return newDna
 }
 
@@ -227,7 +250,7 @@ export interface OrganismStats {
   sensor: number
   speed: number
   mouthCount: number
-  photo: number
+  battery: number
   reproThreshold: number
   turnSpeed: number
 }

@@ -13,12 +13,16 @@ import {
   createPredatorGenome,
   createPreyGenome,
   mutate,
+  generateInitialBrain,
+  getBrainStats,
   type DNA,
   type GenomeNode,
   type OrganismStats,
   type Cell,
   type Camera
 } from '~/games/evosim/engine'
+import { NeuralNetwork } from '~/games/evosim/neural'
+import { INPUT_IDS, OUTPUT_IDS, NUM_INPUTS, NUM_OUTPUTS } from '~/games/evosim/genome'
 
 Chart.register(...registerables)
 
@@ -50,13 +54,19 @@ const insGen = ref(0)
 const insNrg = ref(0)
 const insState = ref('')
 const insSpecies = ref('')
+const insBrain = ref('')
 
-// Config refs for sliders
+// Config refs for sliders (defaults centered at ~50% of range)
 const metaRate = ref(0.10)
 const cellRate = ref(0.015)
 const foodRate = ref(5)
-const foodVal = ref(30)
+const foodVal = ref(100)        // Match CONFIG.foodValue
 const mutRate = ref(25)
+const batteryCapRef = ref(50)   // Battery capacity
+const trophicEffRef = ref(0.15) // Plant→Herbivore efficiency
+
+// Neural network canvas
+const neuralCanvas = ref<HTMLCanvasElement | null>(null)
 
 // Game state
 let app: PIXI.Application | null = null
@@ -110,15 +120,17 @@ class Organism {
   target: any
   speciesName: string
   reproCooldown: number
+  brain: NeuralNetwork
 
   constructor(x: number, y: number, dna?: DNA, generation = 1) {
     this.pos = { x, y }
     this.vel = { x: 0, y: 0 }
     this.rotation = Math.random() * Math.PI * 2
-    this.dna = dna || { hue: Math.random() * 360, root: generateRandomGenome() }
+    this.dna = dna || { hue: Math.random() * 360, root: generateRandomGenome(), brain: generateInitialBrain() }
     this.generation = generation
     this.age = 0
     this.id = Math.floor(Math.random() * 100000)
+    this.brain = new NeuralNetwork(this.dna.brain)
 
     this.stats = {
       mass: 0,
@@ -127,7 +139,7 @@ class Organism {
       sensor: 0,
       speed: 0,
       mouthCount: 0,
-      photo: 0,
+      battery: 0,
       reproThreshold: 0,
       turnSpeed: 0
     }
@@ -153,7 +165,7 @@ class Organism {
     this.container.removeChildren()
     this.cells = []
 
-    const stats = { mass: 0, damage: 0, sensor: 100, photo: 0, speedMod: 0, mouth: 0, armor: 0 }
+    const stats = { mass: 0, damage: 0, sensor: 100, battery: 0, speedMod: 0, mouth: 0, armor: 0 }
     const coreColor = hslToHex(this.dna.hue, 75, 55)
 
     const buildNode = (node: GenomeNode, parentRef: { x: number; y: number; absAngle: number }) => {
@@ -170,7 +182,7 @@ class Organism {
         stats.sensor += 150
         stats.mass -= 2
       }
-      if (node.type === TYPE_DEFS.LEAF.id) stats.photo += CONFIG.photoEfficiency
+      if (node.type === TYPE_DEFS.BATTERY.id) stats.battery += 1
       if (node.type === TYPE_DEFS.ARMOR.id) {
         stats.armor += 1
         stats.mass += 5
@@ -208,7 +220,7 @@ class Organism {
       let color = coreColor
       if (node.type === TYPE_DEFS.MOUTH.id) color = TYPE_DEFS.MOUTH.color
       if (node.type === TYPE_DEFS.SPIKE.id) color = TYPE_DEFS.SPIKE.color
-      if (node.type === TYPE_DEFS.LEAF.id) color = TYPE_DEFS.LEAF.color
+      if (node.type === TYPE_DEFS.BATTERY.id) color = TYPE_DEFS.BATTERY.color
       if (node.type === TYPE_DEFS.EYE.id) color = TYPE_DEFS.EYE.color
       if (node.type === TYPE_DEFS.ARMOR.id) color = TYPE_DEFS.ARMOR.color
       if (node.type === TYPE_DEFS.MOVER.id) color = TYPE_DEFS.MOVER.color
@@ -237,9 +249,10 @@ class Organism {
     this.stats.mass = stats.mass
     this.stats.damage = stats.damage
     this.stats.sensor = stats.sensor
-    this.stats.photo = stats.photo
+    this.stats.battery = stats.battery
     this.stats.mouthCount = stats.mouth
-    this.stats.maxEnergy = 100 + stats.mass * 2 + stats.armor * 20
+    // Battery cells add extra energy storage capacity
+    this.stats.maxEnergy = 100 + stats.mass * 2 + stats.armor * 20 + stats.battery * CONFIG.batteryCapacity
     this.stats.reproThreshold = this.stats.maxEnergy * 0.9
 
     const baseSpeed = CONFIG.baseSpeed + stats.speedMod * 0.15
@@ -260,29 +273,20 @@ class Organism {
     if (this.stats.damage > 0) cost *= 0.6
 
     this.energy -= cost
-    this.energy += this.stats.photo
     if (this.energy > this.stats.maxEnergy) this.energy = this.stats.maxEnergy
     if (this.energy <= 0) return this.die()
     if (this.energy >= this.stats.reproThreshold && this.reproCooldown <= 0) this.reproduce()
 
-    this.findTarget()
+    // Neural network decision making
+    const inputs = this.getSensorInputs()
+    const [turn, thrust] = this.brain.evaluate(inputs)
 
-    let targetAngle = this.rotation
-    if (this.target) {
-      const ty = this.target.pos ? this.target.pos.y : this.target.y
-      const tx = this.target.pos ? this.target.pos.x : this.target.x
-      targetAngle = Math.atan2(ty - this.pos.y, tx - this.pos.x)
-    } else {
-      this.rotation += (Math.random() - 0.5) * 0.1
-    }
+    // Apply neural network outputs
+    this.rotation += turn * this.stats.turnSpeed * 2 // turn is -1 to 1
+    const thrustAmount = (thrust + 1) / 2 // Convert -1..1 to 0..1
 
-    let diff = targetAngle - this.rotation
-    while (diff < -Math.PI) diff += Math.PI * 2
-    while (diff > Math.PI) diff -= Math.PI * 2
-    this.rotation += Math.max(-this.stats.turnSpeed, Math.min(this.stats.turnSpeed, diff))
-
-    this.vel.x += Math.cos(this.rotation) * this.stats.speed
-    this.vel.y += Math.sin(this.rotation) * this.stats.speed
+    this.vel.x += Math.cos(this.rotation) * this.stats.speed * thrustAmount
+    this.vel.y += Math.sin(this.rotation) * this.stats.speed * thrustAmount
 
     this.pos.x += this.vel.x
     this.pos.y += this.vel.y
@@ -314,43 +318,69 @@ class Organism {
     this.checkCollisions()
   }
 
-  findTarget() {
-    if (
-      this.target &&
-      (this.target.dead ||
-        (this.target.id && !organisms.includes(this.target)) ||
-        (!this.target.id && !foods.includes(this.target)))
-    ) {
-      this.target = null
-    }
-    if (this.target) return
-
+  /**
+   * Get sensor inputs for neural network
+   * Returns: [foodDist, foodAngle, preyDist, preyAngle, predatorNear, energy, speed, bias]
+   */
+  getSensorInputs(): number[] {
+    const sensorRange = this.stats.sensor
     const range = 2
-    const localFood = foodGrid.query(this.pos.x, this.pos.y, range)
 
-    let nearest: any = null
-    let minDist = this.stats.sensor
+    // Query spatial grids
+    const nearbyFood = foodGrid.query(this.pos.x, this.pos.y, range)
+    const nearbyOrgs = orgGrid.query(this.pos.x, this.pos.y, range)
 
-    for (const f of localFood) {
+    // Find nearest food
+    let foodDist = 1
+    let foodAngle = 0
+    for (const f of nearbyFood) {
+      if (f.dead) continue
       const d = Math.hypot(f.x - this.pos.x, f.y - this.pos.y)
-      if (d < minDist) {
-        minDist = d
-        nearest = f
+      if (d < foodDist * sensorRange) {
+        foodDist = d / sensorRange
+        foodAngle = this.relativeAngle(f.x, f.y)
       }
     }
 
-    if (this.stats.damage > 0) {
-      const localPrey = orgGrid.query(this.pos.x, this.pos.y, range)
-      for (const o of localPrey) {
-        if (o === this || o.dead) continue
-        const d = Math.hypot(o.pos.x - this.pos.x, o.pos.y - this.pos.y)
-        if (d < minDist) {
-          minDist = d
-          nearest = o
-        }
+    // Find nearest organism + check if predator
+    let preyDist = 1
+    let preyAngle = 0
+    let predatorNear = 0
+    for (const o of nearbyOrgs) {
+      if (o === this || o.dead) continue
+      const d = Math.hypot(o.pos.x - this.pos.x, o.pos.y - this.pos.y)
+      if (d < preyDist * sensorRange) {
+        preyDist = d / sensorRange
+        preyAngle = this.relativeAngle(o.pos.x, o.pos.y)
+        predatorNear = o.stats.damage > this.stats.damage ? 1 : 0
       }
     }
-    this.target = nearest
+
+    // Compute current speed
+    const currentSpeed = Math.hypot(this.vel.x, this.vel.y)
+    const maxSpeed = this.stats.speed * 2
+
+    return [
+      foodDist,                                    // 0: Distance to nearest food (0-1)
+      foodAngle / Math.PI,                        // 1: Angle to food (-1 to 1)
+      preyDist,                                    // 2: Distance to nearest organism (0-1)
+      preyAngle / Math.PI,                        // 3: Angle to organism (-1 to 1)
+      predatorNear,                               // 4: Is nearest organism dangerous? (0 or 1)
+      this.energy / this.stats.maxEnergy,         // 5: Own energy level (0-1)
+      Math.min(1, currentSpeed / maxSpeed),       // 6: Current velocity (0-1)
+      1                                           // 7: Bias (always 1)
+    ]
+  }
+
+  /**
+   * Calculate relative angle to a point
+   */
+  relativeAngle(tx: number, ty: number): number {
+    const targetAngle = Math.atan2(ty - this.pos.y, tx - this.pos.x)
+    let diff = targetAngle - this.rotation
+    while (diff < -Math.PI) diff += Math.PI * 2
+    while (diff > Math.PI) diff -= Math.PI * 2
+    return diff
   }
 
   checkCollisions() {
@@ -582,6 +612,26 @@ function spawnPrey() {
   organisms.push(p)
 }
 
+function updateChart(preds: number) {
+  if (!chartInstance || organisms.length === 0) return
+
+  const avg = organisms.length > 0
+    ? (organisms.reduce((a, b) => a + b.cells.length, 0) / organisms.length).toFixed(1)
+    : '0'
+
+  const label = new Date().toLocaleTimeString().split(' ')[0]
+  // Keep 60 data points (1 minute of history at 1 update/sec)
+  if (chartInstance.data.labels!.length > 60) {
+    chartInstance.data.labels!.shift()
+    chartInstance.data.datasets.forEach((d) => d.data.shift())
+  }
+  chartInstance.data.labels!.push(label)
+  chartInstance.data.datasets[0].data.push(organisms.length)
+  chartInstance.data.datasets[1].data.push(preds)
+  chartInstance.data.datasets[2].data.push(parseFloat(avg))
+  chartInstance.update('none')
+}
+
 function updateStats(preds: number) {
   popCount.value = organisms.length
   predCount.value = preds
@@ -594,26 +644,16 @@ function updateStats(preds: number) {
       : '0'
   avgSize.value = avg
 
-  if (Math.random() < 0.05 && chartInstance && organisms.length > 0) {
-    const label = new Date().toLocaleTimeString().split(' ')[0]
-    if (chartInstance.data.labels!.length > 20) {
-      chartInstance.data.labels!.shift()
-      chartInstance.data.datasets.forEach((d) => d.data.shift())
-    }
-    chartInstance.data.labels!.push(label)
-    chartInstance.data.datasets[0].data.push(organisms.length)
-    chartInstance.data.datasets[1].data.push(preds)
-    chartInstance.data.datasets[2].data.push(parseFloat(avg))
-    chartInstance.update('none')
-  }
-
   if (selectedOrganism && !selectedOrganism.dead) {
     showInspector.value = true
     insId.value = selectedOrganism.speciesName
     insGen.value = selectedOrganism.generation
     insNrg.value = Math.floor(selectedOrganism.energy)
-    insState.value = selectedOrganism.target ? 'Active' : 'Idle'
+    insState.value = 'Neural'
     insSpecies.value = 'Mass: ' + Math.floor(selectedOrganism.stats.mass)
+    const brainInfo = getBrainStats(selectedOrganism.dna.brain)
+    insBrain.value = `${brainInfo.hiddenNeurons}h/${brainInfo.enabledConnections}c`
+    drawNeuralNetwork()
   } else {
     showInspector.value = false
   }
@@ -644,6 +684,170 @@ function drawMinimap() {
   const w = window.innerWidth / camera.zoom
   const h = window.innerHeight / camera.zoom
   ctx.strokeRect((camera.x - w / 2) * sx, (camera.y - h / 2) * sy, w * sx, h * sy)
+}
+
+function drawNeuralNetwork() {
+  const canvas = neuralCanvas.value
+  if (!canvas || !selectedOrganism) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const W = canvas.width
+  const H = canvas.height
+
+  // Clear
+  ctx.clearRect(0, 0, W, H)
+
+  const genome = selectedOrganism.dna.brain
+  const network = selectedOrganism.brain
+
+  // Layout constants
+  const leftMargin = 50
+  const rightMargin = 45
+  const inputX = leftMargin
+  const outputX = W - rightMargin
+  const middleX = W / 2
+
+  // Input labels
+  const inputLabels = ['food↔', 'food∠', 'prey↔', 'prey∠', 'danger', 'energy', 'speed', 'bias']
+  const outputLabels = ['turn', 'thrust']
+
+  // Calculate Y positions for neurons
+  const inputPositions: Map<number, { x: number; y: number }> = new Map()
+  const outputPositions: Map<number, { x: number; y: number }> = new Map()
+  const hiddenPositions: Map<number, { x: number; y: number }> = new Map()
+
+  // Input neurons (IDs 0-7)
+  for (let i = 0; i < NUM_INPUTS; i++) {
+    const y = 15 + (i * (H - 30)) / (NUM_INPUTS - 1)
+    inputPositions.set(i, { x: inputX, y })
+  }
+
+  // Output neurons (IDs 8-9)
+  for (let i = 0; i < NUM_OUTPUTS; i++) {
+    const y = H / 2 - 20 + i * 40
+    outputPositions.set(NUM_INPUTS + i, { x: outputX, y })
+  }
+
+  // Hidden neurons - arrange in layers based on depth
+  const hiddenNeurons = genome.neurons.filter(n => n.type === 'hidden')
+  const numHidden = hiddenNeurons.length
+
+  if (numHidden > 0) {
+    // Simple layout: spread hidden neurons vertically in the middle
+    const rows = Math.ceil(Math.sqrt(numHidden))
+    const cols = Math.ceil(numHidden / rows)
+
+    hiddenNeurons.forEach((n, idx) => {
+      const col = Math.floor(idx / rows)
+      const row = idx % rows
+      const xSpread = (outputX - inputX - 60) / (cols + 1)
+      const x = inputX + 30 + xSpread * (col + 1)
+      const ySpread = (H - 40) / (rows + 1)
+      const y = 20 + ySpread * (row + 1)
+      hiddenPositions.set(n.id, { x, y })
+    })
+  }
+
+  // Helper to get neuron position
+  const getPos = (id: number) => {
+    return inputPositions.get(id) || outputPositions.get(id) || hiddenPositions.get(id) || { x: middleX, y: H / 2 }
+  }
+
+  // Draw connections first (behind nodes)
+  for (const conn of genome.connections) {
+    if (!conn.enabled) continue
+
+    const from = getPos(conn.from)
+    const to = getPos(conn.to)
+
+    // Color based on weight
+    const weight = conn.weight
+    const absWeight = Math.abs(weight)
+    const alpha = Math.min(0.3 + absWeight * 0.2, 0.9)
+
+    ctx.beginPath()
+    ctx.moveTo(from.x, from.y)
+    ctx.lineTo(to.x, to.y)
+    ctx.strokeStyle = weight > 0
+      ? `rgba(16, 185, 129, ${alpha})`  // emerald for positive
+      : `rgba(239, 68, 68, ${alpha})`    // red for negative
+    ctx.lineWidth = Math.min(1 + absWeight * 0.5, 3)
+    ctx.stroke()
+  }
+
+  // Draw input neurons with labels
+  for (let i = 0; i < NUM_INPUTS; i++) {
+    const pos = inputPositions.get(i)!
+    const value = network.getNeuronValue(i)
+
+    // Node circle
+    ctx.beginPath()
+    ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2)
+    const brightness = Math.floor(80 + value * 175)
+    ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`
+    ctx.fill()
+    ctx.strokeStyle = '#6b7280'
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    // Label
+    ctx.fillStyle = '#9ca3af'
+    ctx.font = '8px monospace'
+    ctx.textAlign = 'right'
+    ctx.fillText(inputLabels[i], pos.x - 8, pos.y + 3)
+  }
+
+  // Draw hidden neurons
+  for (const [id, pos] of hiddenPositions) {
+    const value = network.getNeuronValue(id)
+
+    ctx.beginPath()
+    ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2)
+    const brightness = Math.floor(80 + Math.abs(value) * 175)
+    ctx.fillStyle = value >= 0
+      ? `rgb(${brightness}, ${brightness}, ${Math.floor(brightness * 0.8)})`
+      : `rgb(${brightness}, ${Math.floor(brightness * 0.8)}, ${brightness})`
+    ctx.fill()
+    ctx.strokeStyle = '#8b5cf6'
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }
+
+  // Draw output neurons with labels
+  for (let i = 0; i < NUM_OUTPUTS; i++) {
+    const id = NUM_INPUTS + i
+    const pos = outputPositions.get(id)!
+    const value = network.getNeuronValue(id)
+
+    // Node circle (larger)
+    ctx.beginPath()
+    ctx.arc(pos.x, pos.y, 7, 0, Math.PI * 2)
+
+    // Color based on output value (-1 to 1)
+    if (value > 0) {
+      const intensity = Math.floor(value * 200)
+      ctx.fillStyle = `rgb(${80 + intensity}, 255, ${80 + intensity})`
+    } else {
+      const intensity = Math.floor(Math.abs(value) * 200)
+      ctx.fillStyle = `rgb(255, ${80 + 175 - intensity}, ${80 + 175 - intensity})`
+    }
+    ctx.fill()
+    ctx.strokeStyle = '#fbbf24'
+    ctx.lineWidth = 2
+    ctx.stroke()
+
+    // Label
+    ctx.fillStyle = '#9ca3af'
+    ctx.font = '9px monospace'
+    ctx.textAlign = 'left'
+    ctx.fillText(outputLabels[i], pos.x + 10, pos.y + 3)
+
+    // Value indicator
+    ctx.fillStyle = '#6b7280'
+    ctx.font = '7px monospace'
+    ctx.fillText(value.toFixed(2), pos.x + 10, pos.y + 12)
+  }
 }
 
 function initChart() {
@@ -898,8 +1102,13 @@ async function initGame() {
       }
     }
 
-    // Auto-balance every 3 seconds (180 frames)
+    // Update chart every 60 frames (1 second)
     frameCount++
+    if (frameCount % 60 === 0) {
+      updateChart(preds)
+    }
+
+    // Auto-balance every 3 seconds (180 frames) and update stats display
     if (frameCount % 180 === 0) {
       if (preds < CONFIG.minPredators) spawnPredator()
       if (organisms.length - preds < CONFIG.minPrey) spawnPrey()
@@ -907,6 +1116,24 @@ async function initGame() {
     }
 
     drawMinimap()
+
+    // Update inspector and neural network when organism selected
+    if (selectedOrganism && !selectedOrganism.dead) {
+      // Show inspector immediately (not just every 180 frames)
+      if (!showInspector.value) {
+        showInspector.value = true
+        insId.value = selectedOrganism.speciesName
+        insGen.value = selectedOrganism.generation
+        insSpecies.value = 'Mass: ' + Math.floor(selectedOrganism.stats.mass)
+        const brainInfo = getBrainStats(selectedOrganism.dna.brain)
+        insBrain.value = `${brainInfo.hiddenNeurons}h/${brainInfo.enabledConnections}c`
+      }
+      insNrg.value = Math.floor(selectedOrganism.energy)
+      // Draw neural network every frame for live updates
+      drawNeuralNetwork()
+    } else if (showInspector.value && (!selectedOrganism || selectedOrganism.dead)) {
+      showInspector.value = false
+    }
 
     // Selection UI
     uiLayer.removeChildren()
@@ -935,6 +1162,8 @@ watch(cellRate, (val) => (CONFIG.metabolismPerCell = val))
 watch(foodRate, (val) => (CONFIG.foodSpawnRate = val))
 watch(foodVal, (val) => (CONFIG.foodValue = val))
 watch(mutRate, (val) => (CONFIG.mutationRate = val / 100))
+watch(batteryCapRef, (val) => (CONFIG.batteryCapacity = val))
+watch(trophicEffRef, (val) => (CONFIG.efficiencyPlantToHerbivore = val))
 
 // Watch fullscreen changes and resize
 watch(() => props.isFullscreen, () => {
@@ -1011,7 +1240,7 @@ onUnmounted(() => {
       </div>
       <div class="text-[10px] text-center text-gray-500 mt-1">Left-Click Pan • Right-Click Interact</div>
 
-      <!-- Sliders -->
+      <!-- Sliders (ranges centered around stable defaults) -->
       <div class="border-t border-gray-700 pt-2 mt-1 space-y-3">
         <div>
           <div class="flex justify-between items-center mb-1">
@@ -1026,8 +1255,8 @@ onUnmounted(() => {
           <input
             v-model.number="metaRate"
             type="range"
-            min="0"
-            max="0.5"
+            min="0.02"
+            max="0.20"
             step="0.01"
             class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500"
           />
@@ -1046,8 +1275,8 @@ onUnmounted(() => {
           <input
             v-model.number="cellRate"
             type="range"
-            min="0"
-            max="0.1"
+            min="0.005"
+            max="0.03"
             step="0.001"
             class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
           />
@@ -1065,8 +1294,8 @@ onUnmounted(() => {
           <input
             v-model.number="foodRate"
             type="range"
-            min="0"
-            max="50"
+            min="1"
+            max="12"
             step="1"
             class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
           />
@@ -1084,9 +1313,9 @@ onUnmounted(() => {
           <input
             v-model.number="foodVal"
             type="range"
-            min="5"
-            max="100"
-            step="1"
+            min="50"
+            max="200"
+            step="5"
             class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
           />
         </div>
@@ -1103,10 +1332,49 @@ onUnmounted(() => {
           <input
             v-model.number="mutRate"
             type="range"
-            min="0"
-            max="100"
+            min="5"
+            max="50"
             step="1"
             class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-[10px] text-gray-400">Battery Capacity</label>
+            <input
+              v-model.number="batteryCapRef"
+              type="number"
+              class="w-12 bg-gray-800 text-yellow-400 text-xs border border-gray-600 rounded px-1 text-right focus:outline-none focus:border-yellow-500"
+            />
+          </div>
+          <input
+            v-model.number="batteryCapRef"
+            type="range"
+            min="20"
+            max="100"
+            step="5"
+            class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-[10px] text-gray-400">Trophic Efficiency</label>
+            <input
+              v-model.number="trophicEffRef"
+              type="number"
+              step="0.01"
+              class="w-12 bg-gray-800 text-lime-400 text-xs border border-gray-600 rounded px-1 text-right focus:outline-none focus:border-lime-500"
+            />
+          </div>
+          <input
+            v-model.number="trophicEffRef"
+            type="range"
+            min="0.05"
+            max="0.25"
+            step="0.01"
+            class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-lime-500"
           />
         </div>
       </div>
@@ -1122,7 +1390,7 @@ onUnmounted(() => {
     <!-- Inspector -->
     <div
       v-if="showInspector"
-      class="absolute bottom-4 left-4 z-20 w-64 rounded-xl p-4 pointer-events-none"
+      class="absolute bottom-4 left-4 z-20 w-72 rounded-xl p-4 pointer-events-none"
       style="
         background: rgba(15, 23, 42, 0.9);
         backdrop-filter: blur(10px);
@@ -1134,23 +1402,19 @@ onUnmounted(() => {
         <span>Inspector</span>
         <span class="font-mono text-xs text-gray-500">{{ insId }}</span>
       </h3>
-      <div class="space-y-1 text-xs font-mono">
-        <div class="flex justify-between">
-          <span class="text-gray-400">Gen:</span>
-          <span class="text-white">{{ insGen }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-gray-400">Energy:</span>
-          <span class="text-emerald-400">{{ insNrg }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-gray-400">State:</span>
-          <span class="text-yellow-200">{{ insState }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-gray-400">Species:</span>
-          <span class="text-purple-300">{{ insSpecies }}</span>
-        </div>
+      <div class="grid grid-cols-4 gap-1 text-xs font-mono mb-3">
+        <span class="text-gray-400">Gen:</span>
+        <span class="text-white">{{ insGen }}</span>
+        <span class="text-gray-400">Energy:</span>
+        <span class="text-emerald-400">{{ insNrg }}</span>
+        <span class="text-gray-400">{{ insSpecies }}</span>
+        <span class="text-purple-300"></span>
+        <span class="text-gray-400">Brain:</span>
+        <span class="text-cyan-300">{{ insBrain }}</span>
+      </div>
+      <!-- Neural Network Visualization -->
+      <div class="border-t border-gray-600 pt-2">
+        <canvas ref="neuralCanvas" width="256" height="160" class="w-full rounded" style="background: rgba(0,0,0,0.3);"></canvas>
       </div>
     </div>
 

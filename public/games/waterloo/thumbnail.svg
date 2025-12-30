@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#87ceeb"/>
+      <stop offset="60%" stop-color="#b8d4e8"/>
+      <stop offset="100%" stop-color="#d4c4a8"/>
+    </linearGradient>
+    <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8b9a6b"/>
+      <stop offset="100%" stop-color="#6b7a4b"/>
+    </linearGradient>
+    <linearGradient id="hillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9aaa7b"/>
+      <stop offset="100%" stop-color="#7b8a5b"/>
+    </linearGradient>
+    <filter id="smoke" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="400" height="180" fill="url(#skyGrad)"/>
+
+  <!-- Distant hills -->
+  <ellipse cx="100" cy="180" rx="120" ry="40" fill="#a0b088"/>
+  <ellipse cx="320" cy="175" rx="100" ry="35" fill="#95a57d"/>
+
+  <!-- Ground -->
+  <rect y="160" width="400" height="140" fill="url(#groundGrad)"/>
+
+  <!-- Rolling hill in foreground -->
+  <ellipse cx="280" cy="200" rx="150" ry="50" fill="url(#hillGrad)"/>
+
+  <!-- Battle smoke clouds -->
+  <g filter="url(#smoke)" opacity="0.6">
+    <ellipse cx="180" cy="180" rx="60" ry="25" fill="#c8c8c8"/>
+    <ellipse cx="250" cy="175" rx="50" ry="20" fill="#d8d8d8"/>
+    <ellipse cx="130" cy="190" rx="40" ry="18" fill="#e0e0e0"/>
+  </g>
+
+  <!-- French army (Blue) - attacking from left -->
+  <!-- Infantry line in formation -->
+  <g fill="#1e3a5f">
+    <rect x="40" y="215" width="100" height="8" rx="1" fill="#1e3a5f" opacity="0.3"/>
+    <circle cx="50" cy="210" r="4"/><circle cx="62" cy="210" r="4"/>
+    <circle cx="74" cy="210" r="4"/><circle cx="86" cy="210" r="4"/>
+    <circle cx="98" cy="210" r="4"/><circle cx="110" cy="210" r="4"/>
+    <circle cx="122" cy="210" r="4"/><circle cx="134" cy="210" r="4"/>
+    <!-- Second rank -->
+    <circle cx="56" cy="222" r="4"/><circle cx="68" cy="222" r="4"/>
+    <circle cx="80" cy="222" r="4"/><circle cx="92" cy="222" r="4"/>
+    <circle cx="104" cy="222" r="4"/><circle cx="116" cy="222" r="4"/>
+    <circle cx="128" cy="222" r="4"/>
+  </g>
+
+  <!-- French cavalry charge -->
+  <g>
+    <ellipse cx="165" cy="195" rx="6" ry="4" fill="#5d3a1a"/>
+    <circle cx="165" cy="190" r="4" fill="#2952a3"/>
+    <ellipse cx="180" cy="200" rx="6" ry="4" fill="#5d3a1a"/>
+    <circle cx="180" cy="195" r="4" fill="#2952a3"/>
+    <ellipse cx="155" cy="205" rx="6" ry="4" fill="#5d3a1a"/>
+    <circle cx="155" cy="200" r="4" fill="#2952a3"/>
+  </g>
+
+  <!-- French artillery -->
+  <g>
+    <rect x="30" y="248" width="16" height="5" fill="#2a2a2a" rx="1"/>
+    <circle cx="35" cy="255" r="3" fill="#1a1a1a"/>
+    <circle cx="41" cy="255" r="3" fill="#1a1a1a"/>
+    <rect x="60" y="248" width="16" height="5" fill="#2a2a2a" rx="1"/>
+    <circle cx="65" cy="255" r="3" fill="#1a1a1a"/>
+    <circle cx="71" cy="255" r="3" fill="#1a1a1a"/>
+  </g>
+
+  <!-- British army (Red) - defending on hill -->
+  <!-- Infantry square formation -->
+  <g fill="#8b1a1a">
+    <!-- Top row -->
+    <circle cx="270" cy="175" r="4"/><circle cx="282" cy="175" r="4"/>
+    <circle cx="294" cy="175" r="4"/><circle cx="306" cy="175" r="4"/>
+    <circle cx="318" cy="175" r="4"/>
+    <!-- Left side -->
+    <circle cx="270" cy="187" r="4"/><circle cx="270" cy="199" r="4"/>
+    <!-- Right side -->
+    <circle cx="318" cy="187" r="4"/><circle cx="318" cy="199" r="4"/>
+    <!-- Bottom row -->
+    <circle cx="270" cy="211" r="4"/><circle cx="282" cy="211" r="4"/>
+    <circle cx="294" cy="211" r="4"/><circle cx="306" cy="211" r="4"/>
+    <circle cx="318" cy="211" r="4"/>
+  </g>
+
+  <!-- British line infantry -->
+  <g fill="#8b1a1a">
+    <circle cx="340" cy="230" r="4"/><circle cx="352" cy="230" r="4"/>
+    <circle cx="364" cy="230" r="4"/><circle cx="376" cy="230" r="4"/>
+    <circle cx="346" cy="242" r="4"/><circle cx="358" cy="242" r="4"/>
+    <circle cx="370" cy="242" r="4"/>
+  </g>
+
+  <!-- Musket fire effects -->
+  <g fill="#ffdd44" opacity="0.9">
+    <circle cx="120" cy="208" r="3"/>
+    <circle cx="86" cy="208" r="2"/>
+    <circle cx="270" cy="173" r="3"/>
+    <circle cx="306" cy="209" r="2"/>
+  </g>
+
+  <!-- Cannon fire trail -->
+  <line x1="46" y1="248" x2="250" y2="180" stroke="#333" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.4"/>
+  <circle cx="250" cy="180" r="6" fill="#ff6600" opacity="0.7"/>
+  <circle cx="250" cy="180" r="10" fill="#ffaa00" opacity="0.3"/>
+
+  <!-- Selection box (game UI element) -->
+  <rect x="260" y="165" width="70" height="55" rx="2"
+        fill="none" stroke="#00ff00" stroke-width="2"
+        stroke-dasharray="6,3" opacity="0.8"/>
+
+  <!-- Flags -->
+  <!-- French tricolor -->
+  <line x1="90" y1="195" x2="90" y2="210" stroke="#4a3728" stroke-width="2"/>
+  <rect x="91" y="195" width="12" height="8">
+    <animate attributeName="x" values="91;92;91" dur="2s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="91" y="195" width="4" height="8" fill="#002654"/>
+  <rect x="95" y="195" width="4" height="8" fill="#ffffff"/>
+  <rect x="99" y="195" width="4" height="8" fill="#ce1126"/>
+
+  <!-- British Union Jack simplified -->
+  <line x1="294" y1="160" x2="294" y2="175" stroke="#4a3728" stroke-width="2"/>
+  <rect x="295" y="160" width="12" height="8" fill="#012169"/>
+  <line x1="295" y1="164" x2="307" y2="164" stroke="#fff" stroke-width="2"/>
+  <line x1="301" y1="160" x2="301" y2="168" stroke="#fff" stroke-width="2"/>
+  <line x1="295" y1="164" x2="307" y2="164" stroke="#c8102e" stroke-width="1"/>
+  <line x1="301" y1="160" x2="301" y2="168" stroke="#c8102e" stroke-width="1"/>
+
+  <!-- Title banner -->
+  <rect x="100" y="260" width="200" height="32" rx="4" fill="#1a1a1a" opacity="0.85"/>
+  <text x="200" y="282" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="bold" fill="#d4af37">
+    WATERLOO
+  </text>
+  <text x="200" y="288" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#a0a0a0" letter-spacing="2">
+    NAPOLEONIC TACTICS
+  </text>
+</svg>

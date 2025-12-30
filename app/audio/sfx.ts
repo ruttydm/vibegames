@@ -5,6 +5,7 @@ import {
   playSnakeTurn,
   playSnakeSpeedup
 } from '~/games/snake/audio'
+import { partySfxRegistry } from '~/games/party/audio'
 
 type SynthType = Tone.Synth | Tone.NoiseSynth | Tone.MembraneSynth
 
@@ -201,7 +202,10 @@ const sfxRegistry: Record<string, () => void> = {
   'score.up': playScoreUp,
   'powerup': playPowerup,
   'game.over': playGameOver,
-  'victory': playVictory
+  'victory': playVictory,
+
+  // Party (imported from ~/games/party/audio.ts)
+  ...partySfxRegistry
 }
 
 /**

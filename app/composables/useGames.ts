@@ -51,13 +51,14 @@ const games: Game[] = [
   {
     slug: 'asteroids',
     title: 'Asteroids',
-    description: 'Blast through space! Destroy asteroids and survive.',
-    thumbnail: '/games/asteroids/thumbnail.png',
-    categories: ['arcade', 'shooter'],
+    description: 'Blast through space! Destroy asteroids, avoid collisions, and survive as long as you can in this classic arcade shooter.',
+    thumbnail: '/games/asteroids/thumbnail.svg',
+    categories: ['arcade', 'shooter', 'classic'],
     mode: 'singleplayer',
     controls: [
-      { key: 'Arrow Keys', action: 'Move & Rotate' },
-      { key: 'Space', action: 'Shoot' }
+      { key: 'Arrow Keys / WASD', action: 'Rotate & Thrust' },
+      { key: 'Space', action: 'Fire' },
+      { key: 'P / Escape', action: 'Pause' }
     ],
     featured: true
   },
@@ -123,6 +124,50 @@ const games: Game[] = [
       { key: 'Right-Click', action: 'Select organism / Spawn food' },
       { key: 'Scroll', action: 'Zoom in/out' }
     ],
+    featured: true
+  },
+  {
+    slug: 'antcolony',
+    title: 'Ant Colony Tycoon',
+    description: 'Build and manage your ant colony! Guide ants with pheromone trails, collect food, and evolve your hive.',
+    thumbnail: '/games/antcolony/thumbnail.svg',
+    categories: ['simulation', 'strategy'],
+    mode: 'singleplayer',
+    controls: [
+      { key: 'Left-Click', action: 'Spawn food' },
+      { key: 'Upgrades', action: 'Evolve colony abilities' }
+    ],
+    featured: true
+  },
+  {
+    slug: 'waterloo',
+    title: 'Waterloo Mini',
+    description: 'Command your Napoleonic army in epic tactical battles! Deploy infantry, cavalry, and artillery in formation combat.',
+    thumbnail: '/games/waterloo/thumbnail.svg',
+    categories: ['strategy', 'simulation'],
+    mode: 'both',
+    controls: [
+      { key: 'Left-Click / Drag', action: 'Select units' },
+      { key: 'Right-Click', action: 'Move / Attack' },
+      { key: 'Right-Click + Drag', action: 'Draw formation line' }
+    ],
+    minPlayers: 1,
+    maxPlayers: 2,
+    featured: true
+  },
+  {
+    slug: 'party',
+    title: 'NYE Party',
+    description: 'Jackbox-style party games! Host displays on TV, players use phones as controllers. Trivia, drawing, voting & reaction games.',
+    thumbnail: '/games/party/thumbnail.svg',
+    categories: ['party'],
+    mode: 'multiplayer',
+    controls: [
+      { key: 'Phone', action: 'Scan QR code to join' },
+      { key: 'Touch', action: 'Tap buttons, draw, vote' }
+    ],
+    minPlayers: 2,
+    maxPlayers: 6,
     featured: true
   }
 ]

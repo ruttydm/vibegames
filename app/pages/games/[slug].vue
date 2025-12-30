@@ -13,6 +13,11 @@ if (!game) {
   })
 }
 
+// Redirect party game to its dedicated route
+if (slug === 'party') {
+  navigateTo('/party')
+}
+
 // Get related games from same categories
 const relatedGames = computed(() => {
   if (!game) return []
@@ -135,7 +140,7 @@ watch(() => multiplayer.lobby.error, (error) => {
 
 // Check if game component exists for this slug
 const hasGameComponent = computed(() => {
-  return ['snake', 'evosim'].includes(slug)
+  return ['snake', 'evosim', 'antcolony', 'waterloo'].includes(slug)
 })
 
 const multiplayerPlayers = computed(() => {
@@ -303,6 +308,16 @@ useSeoMeta({
         <!-- EvoSim Game -->
         <div v-else-if="slug === 'evosim'" class="w-full h-full">
           <EvoSimGame :is-fullscreen="isFullscreen" />
+        </div>
+
+        <!-- Ant Colony Game -->
+        <div v-else-if="slug === 'antcolony'" class="w-full h-full">
+          <AntColonyGame :is-fullscreen="isFullscreen" />
+        </div>
+
+        <!-- Waterloo Mini Game -->
+        <div v-else-if="slug === 'waterloo'" class="w-full h-full" :class="isFullscreen ? '' : 'min-h-[600px]'">
+          <WaterlooGame :is-fullscreen="isFullscreen" />
         </div>
 
         <!-- Placeholder for other games -->

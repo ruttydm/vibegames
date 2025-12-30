@@ -18,7 +18,8 @@ export default defineNuxtConfig({
     dirs: [
       { path: '~/components/ui', pathPrefix: false },
       { path: '~/components/layout', pathPrefix: false },
-      { path: '~/components/game', pathPrefix: false }
+      { path: '~/components/game', pathPrefix: false },
+      { path: '~/components/party', pathPrefix: true }
     ]
   },
 
