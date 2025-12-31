@@ -77,8 +77,12 @@ watch(() => multiplayer.lobby.error, (err) => {
 })
 
 useSeoMeta({
-  title: 'Multiplayer Lobbies - VibeGames',
-  description: 'Join or create multiplayer game rooms. Play arcade games with friends in real-time.'
+  title: 'Multiplayer Games - Play With Friends | VibeGames',
+  description: 'Join or create multiplayer game rooms. Play free arcade games with friends in real-time. No download required.',
+  ogTitle: 'Multiplayer Games | VibeGames',
+  ogDescription: 'Play arcade games with friends in real-time. Create or join game lobbies.',
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
 })
 </script>
 

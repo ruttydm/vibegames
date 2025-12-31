@@ -13,8 +13,52 @@ onMounted(() => {
 })
 
 useSeoMeta({
-  title: 'VibeGames - Retro Arcade Games',
-  description: 'Play classic arcade games in your browser. Singleplayer and multiplayer games all made with love.'
+  title: 'VibeGames - Free Retro Arcade Games Online',
+  description: 'Play free retro arcade games online. Snake, Asteroids, Waterloo tactics, and more. Multiplayer support, no ads, no login required.',
+  ogTitle: 'VibeGames - Free Retro Arcade Games Online',
+  ogDescription: 'Play free retro arcade games online. Multiplayer support, no ads, no login required.',
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
+})
+
+// Structured data for the website
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'VibeGames',
+        description: 'Free retro arcade games collection',
+        url: 'https://vibegames.io',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://vibegames.io/games?q={search_term_string}',
+          'query-input': 'required name=search_term_string'
+        }
+      })
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'Featured Games',
+        itemListElement: featuredGames.map((game, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
+            '@type': 'VideoGame',
+            name: game.title,
+            description: game.description,
+            url: `https://vibegames.io/games/${game.slug}`,
+            image: game.thumbnail
+          }
+        }))
+      })
+    }
+  ]
 })
 </script>
 

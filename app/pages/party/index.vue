@@ -140,6 +140,15 @@ const confettiParticles = Array.from({ length: 30 }, () => ({
 
 // Easter egg: Click to shoot confetti
 const { playSfx } = useAudio()
+
+useSeoMeta({
+  title: 'NYE Party Games - Play With Friends | VibeGames',
+  description: 'Host or join a New Year\'s Eve party with fun mini-games. Drawing, trivia, voting games and more. Play with friends on any device.',
+  ogTitle: 'NYE Party Games | VibeGames',
+  ogDescription: 'Host a New Year\'s Eve party with fun mini-games. Play with friends!',
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
+})
 const burstParticles = ref<Array<{ id: number; x: number; y: number; color: string; angle: number; velocity: number }>>([])
 let burstIdCounter = 0
 

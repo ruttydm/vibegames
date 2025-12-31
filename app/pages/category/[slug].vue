@@ -15,8 +15,41 @@ if (!category) {
 const games = getGamesByCategory(slug)
 
 useSeoMeta({
-  title: `${category.name} Games - VibeGames`,
-  description: `Play ${category.name.toLowerCase()} games. Browse our collection of ${category.name.toLowerCase()} arcade games.`
+  title: `${category.name} Games - Free Online Arcade Games | VibeGames`,
+  description: `Play free ${category.name.toLowerCase()} games online. Browse ${games.length} ${category.name.toLowerCase()} arcade games in your browser.`,
+  ogTitle: `${category.name} Games | VibeGames`,
+  ogDescription: `Play free ${category.name.toLowerCase()} games online. No download required.`,
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
+})
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: `${category.name} Games`,
+        description: `Collection of ${category.name.toLowerCase()} arcade games`,
+        url: `https://vibegames.io/category/${slug}`,
+        mainEntity: {
+          '@type': 'ItemList',
+          name: category.name,
+          numberOfItems: games.length,
+          itemListElement: games.map((game, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+              '@type': 'VideoGame',
+              name: game.title,
+              url: `https://vibegames.io/games/${game.slug}`
+            }
+          }))
+        }
+      })
+    }
+  ]
 })
 </script>
 

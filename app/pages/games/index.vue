@@ -26,8 +26,44 @@ const filteredGames = computed(() => {
 })
 
 useSeoMeta({
-  title: 'All Games - VibeGames',
-  description: 'Browse all arcade games. Classic games, puzzles, shooters, and more.'
+  title: 'All Games - Free Retro Arcade Games | VibeGames',
+  description: 'Browse our complete collection of free retro arcade games. Play Snake, Asteroids, Waterloo tactics, and more classic games in your browser.',
+  ogTitle: 'All Games - Free Retro Arcade Games | VibeGames',
+  ogDescription: 'Browse our complete collection of free retro arcade games. Play classic games in your browser.',
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
+})
+
+// Structured data for games collection
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'All Games - VibeGames',
+        description: 'Complete collection of free retro arcade games',
+        url: 'https://vibegames.io/games',
+        mainEntity: {
+          '@type': 'ItemList',
+          name: 'All Games',
+          numberOfItems: games.length,
+          itemListElement: games.map((game, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+              '@type': 'VideoGame',
+              name: game.title,
+              description: game.description,
+              url: `https://vibegames.io/games/${game.slug}`,
+              image: game.thumbnail
+            }
+          }))
+        }
+      })
+    }
+  ]
 })
 </script>
 

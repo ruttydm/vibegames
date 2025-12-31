@@ -151,9 +151,43 @@ const multiplayerPlayers = computed(() => {
   }))
 })
 
+// SEO meta tags with game-specific OG image
 useSeoMeta({
-  title: `${game.title} - VibeGames`,
-  description: game.description
+  title: `${game.title} - Play Free Online | VibeGames`,
+  description: game.description,
+  ogTitle: `${game.title} - Play Free Online | VibeGames`,
+  ogDescription: game.description,
+  ogImage: game.thumbnail,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: `${game.title} - VibeGames`,
+  twitterDescription: game.description,
+  twitterImage: game.thumbnail
+})
+
+// Structured data for the game (JSON-LD)
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'VideoGame',
+        name: game.title,
+        description: game.description,
+        image: game.thumbnail,
+        genre: game.categories,
+        playMode: game.mode === 'singleplayer' ? 'SinglePlayer' : game.mode === 'multiplayer' ? 'MultiPlayer' : ['SinglePlayer', 'MultiPlayer'],
+        applicationCategory: 'Game',
+        operatingSystem: 'Web Browser',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD'
+        }
+      })
+    }
+  ]
 })
 </script>
 

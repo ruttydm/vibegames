@@ -1,7 +1,11 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: 'About - VibeGames',
-  description: 'Learn about VibeGames and the developer behind these retro arcade games.'
+  title: 'About - VibeGames | Free Retro Arcade Games',
+  description: 'Learn about VibeGames - a collection of free retro arcade games built with modern web technologies. Play classic games in your browser.',
+  ogTitle: 'About VibeGames',
+  ogDescription: 'Classic arcade games, reimagined for the modern web.',
+  ogImage: '/og-image.svg',
+  twitterCard: 'summary_large_image'
 })
 </script>
 

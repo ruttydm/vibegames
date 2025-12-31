@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="50%" stop-color="#16213e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00fff5"/>
+      <stop offset="100%" stop-color="#00d4aa"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Grid pattern -->
+  <g stroke="#00fff5" stroke-width="0.5" opacity="0.1">
+    <line x1="0" y1="0" x2="0" y2="630"/>
+    <line x1="100" y1="0" x2="100" y2="630"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="500" y1="0" x2="500" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="700" y1="0" x2="700" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+    <line x1="1200" y1="0" x2="1200" y2="630"/>
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+    <line x1="0" y1="600" x2="1200" y2="600"/>
+  </g>
+
+  <!-- Decorative game icons (scattered) -->
+  <!-- Snake -->
+  <g transform="translate(100, 150)" opacity="0.3">
+    <path d="M0 0 L20 0 L20 20 L40 20 L40 40 L20 40 L20 60 L0 60 Z" fill="#00ff00"/>
+  </g>
+  <!-- Asteroid -->
+  <g transform="translate(1050, 120)" opacity="0.3">
+    <polygon points="0,-25 15,-18 25,-5 20,15 5,25 -15,20 -25,5 -18,-15" fill="none" stroke="#fff" stroke-width="2"/>
+  </g>
+  <!-- Pac-man style -->
+  <g transform="translate(150, 450)" opacity="0.3">
+    <path d="M25 0 A25 25 0 1 1 25 50 L25 25 Z" fill="#ffd93d"/>
+  </g>
+  <!-- Controller -->
+  <g transform="translate(1000, 480)" opacity="0.3">
+    <rect x="0" y="10" width="80" height="40" rx="10" fill="#333" stroke="#00fff5" stroke-width="2"/>
+    <circle cx="25" cy="30" r="8" fill="#00fff5"/>
+    <circle cx="55" cy="30" r="8" fill="#ff6b9d"/>
+  </g>
+
+  <!-- Main Logo/Title -->
+  <g filter="url(#strongGlow)">
+    <text x="600" y="280" text-anchor="middle" font-family="'Press Start 2P', 'Courier New', monospace" font-size="72" fill="#00fff5" font-weight="bold">
+      VIBEGAMES
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="600" y="350" text-anchor="middle" font-family="'VT323', 'Courier New', monospace" font-size="36" fill="#ff6b9d">
+    Retro Arcade Games Collection
+  </text>
+
+  <!-- Feature badges -->
+  <g transform="translate(300, 420)">
+    <rect x="0" y="0" width="180" height="50" rx="8" fill="#1a1a2e" stroke="#00fff5" stroke-width="2"/>
+    <text x="90" y="32" text-anchor="middle" font-family="monospace" font-size="18" fill="#00fff5">Multiplayer</text>
+  </g>
+  <g transform="translate(510, 420)">
+    <rect x="0" y="0" width="180" height="50" rx="8" fill="#1a1a2e" stroke="#ffd93d" stroke-width="2"/>
+    <text x="90" y="32" text-anchor="middle" font-family="monospace" font-size="18" fill="#ffd93d">Free to Play</text>
+  </g>
+  <g transform="translate(720, 420)">
+    <rect x="0" y="0" width="180" height="50" rx="8" fill="#1a1a2e" stroke="#ff6b9d" stroke-width="2"/>
+    <text x="90" y="32" text-anchor="middle" font-family="monospace" font-size="18" fill="#ff6b9d">No Ads</text>
+  </g>
+
+  <!-- Scanline effect -->
+  <g opacity="0.03">
+    <line x1="0" y1="2" x2="1200" y2="2" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="6" x2="1200" y2="6" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="10" x2="1200" y2="10" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="14" x2="1200" y2="14" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- Border glow -->
+  <rect x="20" y="20" width="1160" height="590" rx="10" fill="none" stroke="#00fff5" stroke-width="2" opacity="0.3"/>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
+  <!-- Gamepad body -->
+  <rect x="6" y="11" width="20" height="12" rx="3" fill="#2a2a4a" stroke="#00fff5" stroke-width="1"/>
+  <!-- D-pad -->
+  <rect x="9" y="15" width="2" height="6" rx="0.5" fill="#00fff5"/>
+  <rect x="7" y="17" width="6" height="2" rx="0.5" fill="#00fff5"/>
+  <!-- Buttons -->
+  <circle cx="22" cy="15" r="1.5" fill="#ff6b9d"/>
+  <circle cx="25" cy="17" r="1.5" fill="#00fff5"/>
+  <circle cx="22" cy="19" r="1.5" fill="#ffd93d"/>
+  <!-- Glow effect -->
+  <rect x="6" y="11" width="20" height="12" rx="3" fill="none" stroke="#00fff5" stroke-width="0.5" opacity="0.5"/>
+</svg>
