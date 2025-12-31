@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePartyGame, type PartyPhase, type MiniGameId, type ControllerType } from '~/composables/usePartyGame'
 import { usePlayer } from '~/composables/usePlayer'
+import { useAudio } from '~/composables/useAudio'
 import {
   getRandomTrivia,
   getRandomVotingPrompts,
@@ -21,6 +22,15 @@ const roomCode = route.params.room as string
 
 const { playerName, initPlayer } = usePlayer()
 const party = usePartyGame()
+const { startSong, stopSong, playSfx } = useAudio()
+
+// Map game types to their song IDs
+const gameSongMap: Record<MiniGameId, string> = {
+  trivia: 'party-trivia',
+  voting: 'party-voting',
+  drawing: 'party-drawing',
+  reaction: 'party-reaction'
+}
 
 // ============================================
 // NYE Countdown & Decorations
@@ -178,6 +188,9 @@ function startNextGame() {
   currentPromptIndex.value = 0
   showingAnswer.value = false
 
+  // Play game intro music
+  playSfx('party.start')
+
   // Show game intro
   party.setPhase('game_intro', { game: currentGame })
 
@@ -227,6 +240,12 @@ function startRound() {
       break
   }
 
+  // Start the game-specific theme song
+  const songId = gameSongMap[currentGame]
+  if (songId) {
+    startSong(songId as any)
+  }
+
   party.initGame(currentGame, prompt, controllerType)
   party.setPhase('round_active')
   party.startTimer(duration)
@@ -248,6 +267,11 @@ function endRound() {
     clearInterval(timerInterval.value)
     timerInterval.value = null
   }
+
+  // Stop game music and play reveal music
+  stopSong()
+  startSong('party-reveal' as any)
+  playSfx('party.reveal')
 
   showingAnswer.value = true
   party.setPhase('round_reveal')
@@ -357,11 +381,16 @@ function endRound() {
 
   // After reveal, show scoreboard
   setTimeout(() => {
+    // Switch to scoreboard music
+    stopSong()
+    startSong('party-scoreboard' as any)
+
     party.setPhase('round_scoreboard')
     party.showScoreboard()
 
     // Then advance to next round or game
     setTimeout(() => {
+      stopSong()
       advanceGame()
     }, 5000)
   }, 4000)
@@ -380,7 +409,9 @@ function advanceGame() {
     // Check if party is over
     const room = party.state.room
     if (room && room.currentGameIndex >= room.totalGames) {
-      // Party over!
+      // Party over! Play finale music
+      startSong('party-finale' as any)
+      playSfx('party.celebration')
       party.endParty()
     } else {
       // Start next mini-game
@@ -401,6 +432,9 @@ function handleGuess(playerId: string, guess: string) {
     if (guess.toLowerCase().includes(currentWord)) {
       // Correct guess!
       drawingRoundEnded.value = true
+      stopSong()
+      playSfx('party.correct')
+
       const scores: Record<string, { points: number; correct: boolean }> = {
         [playerId]: { points: 150, correct: true }
       }
@@ -412,9 +446,13 @@ function handleGuess(playerId: string, guess: string) {
         timerInterval.value = null
       }
       setTimeout(() => {
+        startSong('party-scoreboard' as any)
         party.setPhase('round_scoreboard')
         party.showScoreboard()
-        setTimeout(() => advanceGame(), 3000)
+        setTimeout(() => {
+          stopSong()
+          advanceGame()
+        }, 3000)
       }, 2000)
     }
   }
@@ -430,6 +468,8 @@ function submitDrawingGuess() {
     // Correct guess from host screen!
     drawingGuessResult.value = 'correct'
     drawingRoundEnded.value = true
+    stopSong()
+    playSfx('party.correct')
 
     // Award points to all players who were drawing (everyone gets points for successful round)
     const scores: Record<string, { points: number; correct: boolean }> = {}
@@ -444,12 +484,17 @@ function submitDrawingGuess() {
       timerInterval.value = null
     }
     setTimeout(() => {
+      startSong('party-scoreboard' as any)
       party.setPhase('round_scoreboard')
       party.showScoreboard()
-      setTimeout(() => advanceGame(), 3000)
+      setTimeout(() => {
+        stopSong()
+        advanceGame()
+      }, 3000)
     }, 2000)
   } else {
     drawingGuessResult.value = 'wrong'
+    playSfx('party.wrong')
     setTimeout(() => {
       drawingGuessResult.value = null
     }, 1500)
@@ -459,6 +504,7 @@ function submitDrawingGuess() {
 }
 
 function returnToLobby() {
+  stopSong()
   party.returnToLobby()
   currentPromptIndex.value = 0
   showingAnswer.value = false
@@ -470,6 +516,7 @@ function kickPlayer(playerId: string) {
 
 // Cleanup
 onUnmounted(() => {
+  stopSong()
   if (timerInterval.value) {
     clearInterval(timerInterval.value)
   }

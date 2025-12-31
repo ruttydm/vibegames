@@ -1,6 +1,15 @@
 import { getAudioEngine } from '../engine'
 import { createSnakeSong } from '~/games/snake/audio'
-import { createPartySong } from '~/games/party/audio'
+import {
+  createPartySong,
+  createTriviaSong,
+  createVotingSong,
+  createDrawingSong,
+  createReactionSong,
+  createRevealSong,
+  createScoreboardSong,
+  createFinalResultsSong
+} from '~/games/party/audio'
 
 /**
  * Song Registry
@@ -10,7 +19,16 @@ import { createPartySong } from '~/games/party/audio'
 
 const songs = {
   snake: createSnakeSong,
-  party: createPartySong
+  party: createPartySong,
+  // Party mini-game specific songs
+  'party-trivia': createTriviaSong,
+  'party-voting': createVotingSong,
+  'party-drawing': createDrawingSong,
+  'party-reaction': createReactionSong,
+  // Party phase songs
+  'party-reveal': createRevealSong,
+  'party-scoreboard': createScoreboardSong,
+  'party-finale': createFinalResultsSong
 } as const
 
 export type SongId = keyof typeof songs
