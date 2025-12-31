@@ -210,8 +210,9 @@ const gameInfo = computed(() => {
 <template>
   <div class="min-h-screen bg-arcade-bg text-white flex flex-col safe-area-inset">
     <!-- Loading State -->
-    <div v-if="isLoading" class="flex-1 flex items-center justify-center">
+    <div v-if="isLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
       <Icon name="mdi:loading" class="w-12 h-12 text-neon-cyan animate-spin" />
+      <p class="font-retro text-white/50 text-sm">Joining party...</p>
     </div>
 
     <!-- Error State -->
@@ -263,6 +264,11 @@ const gameInfo = computed(() => {
 
       <!-- Main Content -->
       <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Debug info -->
+        <div class="p-2 bg-arcade-surface text-xs font-mono text-white/50">
+          Phase: {{ party.phase.value }} | Player: {{ party.state.currentPlayer?.name }} | Room: {{ party.state.room?.id }}
+        </div>
+
         <!-- LOBBY PHASE -->
         <ControllerWaiting
           v-if="party.phase.value === 'lobby'"

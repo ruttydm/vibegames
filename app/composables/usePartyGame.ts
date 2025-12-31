@@ -173,6 +173,7 @@ export function usePartyGame() {
         sharedState.room = payload.room
         sharedState.currentPlayer = payload.player
         sharedState.status = 'connected'
+        console.log('[Party] Joined room:', payload.room?.id, 'as player:', payload.player?.name, payload.player?.id)
         break
 
       case 'party_player_joined':
@@ -182,6 +183,13 @@ export function usePartyGame() {
           sharedState.room.players = payload.players
           if (payload.newHostId && sharedState.currentPlayer) {
             sharedState.currentPlayer.isHost = sharedState.currentPlayer.id === payload.newHostId
+          }
+          // Sync currentPlayer with room players to keep all fields updated
+          if (sharedState.currentPlayer) {
+            const updatedPlayer = payload.players.find((p: any) => p.id === sharedState.currentPlayer?.id)
+            if (updatedPlayer) {
+              Object.assign(sharedState.currentPlayer, updatedPlayer)
+            }
           }
         }
         break
@@ -300,7 +308,18 @@ export function usePartyGame() {
   }
 
   async function joinParty(roomCode: string, playerName?: string) {
+    // If we're already in a different room, clear room state first (but keep connection)
+    if (sharedState.room && sharedState.room.id !== roomCode) {
+      console.log('[Party] Leaving old room:', sharedState.room.id, 'to join:', roomCode)
+      sharedState.room = null
+      sharedState.currentPlayer = null
+      sharedState.error = null
+      sharedState.controllerType = 'waiting'
+      sharedState.hasSubmitted = false
+      sharedState.lastFeedback = null
+    }
     await connect()
+    console.log('[Party] Joining room:', roomCode, 'as:', playerName)
     send('join_party', { roomCode, playerName })
   }
 

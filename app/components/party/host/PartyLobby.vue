@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { PartyPlayer } from '~/composables/usePartyGame'
+import QRCodeDisplay from '~/components/party/shared/QRCodeDisplay.vue'
+import PlayerAvatar from '~/components/party/shared/PlayerAvatar.vue'
 
 defineProps<{
   roomCode: string
@@ -21,7 +23,7 @@ const emit = defineEmits<{
       <h2 class="text-2xl font-pixel text-neon-cyan mb-6">
         Scan to Join!
       </h2>
-      <PartySharedQRCodeDisplay :room-code="roomCode" />
+      <QRCodeDisplay :room-code="roomCode" />
     </div>
 
     <!-- Players Section -->
@@ -37,7 +39,7 @@ const emit = defineEmits<{
           :key="player.id"
           class="relative"
         >
-          <PartySharedPlayerAvatar
+          <PlayerAvatar
             :avatar="player.avatar"
             :color="player.color"
             :name="player.name"

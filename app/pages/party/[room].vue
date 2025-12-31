@@ -9,6 +9,10 @@ import {
   type TriviaQuestion,
   type ReactionChallenge
 } from '~/games/party/prompts'
+import PartyLobby from '~/components/party/host/PartyLobby.vue'
+import PartyScoreboard from '~/components/party/host/PartyScoreboard.vue'
+import PlayerAvatar from '~/components/party/shared/PlayerAvatar.vue'
+import NYEFireworks from '~/components/party/shared/NYEFireworks.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -505,7 +509,7 @@ const currentPrompt = computed(() => {
 
     <!-- LOBBY PHASE -->
     <div v-else-if="party.phase.value === 'lobby'" class="animate-fade-in">
-      <PartyHostPartyLobby
+      <PartyLobby
         :room-code="party.roomCode.value || ''"
         :players="party.players.value"
         :can-start="party.canStart.value"
@@ -525,7 +529,7 @@ const currentPrompt = computed(() => {
 
       <!-- Player avatars -->
       <div class="flex gap-4 mt-8">
-        <PartySharedPlayerAvatar
+        <PlayerAvatar
           v-for="player in party.players.value"
           :key="player.id"
           :avatar="player.avatar"
@@ -581,7 +585,7 @@ const currentPrompt = computed(() => {
 
         <!-- Show who has voted -->
         <div class="flex justify-center gap-4 mt-12">
-          <PartySharedPlayerAvatar
+          <PlayerAvatar
             v-for="player in party.players.value"
             :key="player.id"
             :avatar="player.avatar"
@@ -618,7 +622,7 @@ const currentPrompt = computed(() => {
 
         <!-- Show who has buzzed -->
         <div class="flex justify-center gap-4 mt-12">
-          <PartySharedPlayerAvatar
+          <PlayerAvatar
             v-for="player in party.players.value"
             :key="player.id"
             :avatar="player.avatar"
@@ -644,7 +648,7 @@ const currentPrompt = computed(() => {
       <div v-else-if="party.currentGame.value === 'voting'" class="text-center">
         <p class="text-2xl font-retro text-white mb-4">Most votes went to:</p>
         <div class="flex gap-4 justify-center">
-          <PartySharedPlayerAvatar
+          <PlayerAvatar
             v-for="winnerId in correctAnswer"
             :key="winnerId"
             :avatar="party.players.value.find(p => p.id === winnerId)?.avatar || '🎉'"
@@ -658,7 +662,7 @@ const currentPrompt = computed(() => {
 
     <!-- SCOREBOARD PHASE -->
     <div v-else-if="party.phase.value === 'round_scoreboard'" class="animate-fade-in">
-      <PartyHostPartyScoreboard
+      <PartyScoreboard
         :players="party.players.value"
         :title="`Round ${currentPromptIndex + 1} Results`"
         show-round-score
@@ -671,7 +675,7 @@ const currentPrompt = computed(() => {
         GAME OVER!
       </h1>
 
-      <PartyHostPartyScoreboard
+      <PartyScoreboard
         :players="party.players.value"
         title="Final Scores"
       />
@@ -690,7 +694,7 @@ const currentPrompt = computed(() => {
     </div>
 
     <!-- Fireworks overlay for celebrations -->
-    <PartySharedNYEFireworks
+    <NYEFireworks
       :active="showFireworks"
       :intensity="fireworksIntensity"
     />

@@ -336,7 +336,13 @@ export default defineWebSocketHandler({
                 name: player.name,
                 color: player.color,
                 avatar: player.avatar,
-                isHost: player.isHost
+                isHost: player.isHost,
+                isReady: player.isReady,
+                score: player.score,
+                roundScore: player.roundScore,
+                streak: player.streak,
+                connected: player.connected,
+                hasSubmitted: player.hasSubmitted
               }
             }
           }))
@@ -346,9 +352,11 @@ export default defineWebSocketHandler({
 
       case 'join_party': {
         const { roomCode, playerName } = payload
+        console.log('[Party] Join request for room:', roomCode, 'from:', playerName)
         const room = partyManager.getRoom(roomCode)
 
         if (!room) {
+          console.log('[Party] Room not found:', roomCode)
           peer.send(JSON.stringify({
             type: 'error',
             payload: { message: 'Party not found' }
@@ -374,7 +382,8 @@ export default defineWebSocketHandler({
 
         const player = partyManager.joinRoom(roomCode, peer, playerName)
         if (player) {
-          // Send to joining player
+          console.log('[Party] Player joined:', player.name, 'to room:', room.id, '- total players:', room.players.size)
+          // Send to joining player - include all player fields
           peer.send(JSON.stringify({
             type: 'party_joined',
             payload: {
@@ -384,7 +393,13 @@ export default defineWebSocketHandler({
                 name: player.name,
                 color: player.color,
                 avatar: player.avatar,
-                isHost: player.isHost
+                isHost: player.isHost,
+                isReady: player.isReady,
+                score: player.score,
+                roundScore: player.roundScore,
+                streak: player.streak,
+                connected: player.connected,
+                hasSubmitted: player.hasSubmitted
               }
             }
           }))
