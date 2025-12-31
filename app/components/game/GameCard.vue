@@ -29,8 +29,15 @@ const getModeLabel = (mode: Game['mode']) => {
     <Card class="overflow-hidden">
       <!-- Thumbnail -->
       <div class="relative aspect-video bg-arcade-bg overflow-hidden">
+        <!-- Use regular img for SVGs to avoid Sharp processing issues -->
+        <img
+          v-if="game.thumbnail?.endsWith('.svg')"
+          :src="game.thumbnail"
+          :alt="game.title"
+          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
         <NuxtImg
-          v-if="game.thumbnail"
+          v-else-if="game.thumbnail"
           :src="game.thumbnail"
           :alt="game.title"
           class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

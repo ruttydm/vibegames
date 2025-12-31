@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { usePartyGame } from '~/composables/usePartyGame'
 import { usePlayer } from '~/composables/usePlayer'
+import ControllerWaiting from '~/components/party/controller/ControllerWaiting.vue'
+import ControllerButtons from '~/components/party/controller/ControllerButtons.vue'
+import ControllerVoting from '~/components/party/controller/ControllerVoting.vue'
+import ControllerDrawCanvas from '~/components/party/controller/ControllerDrawCanvas.vue'
+import ControllerTextInput from '~/components/party/controller/ControllerTextInput.vue'
+import ControllerBuzzer from '~/components/party/controller/ControllerBuzzer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -86,31 +92,37 @@ onMounted(() => {
 
 function setReady(ready: boolean) {
   party.setReady(ready)
+  playSfx('party.ready')
   vibrate()
 }
 
 function submitAnswer(answer: number) {
   party.submitAnswer(answer)
+  playSfx('ui.select')
   vibrate()
 }
 
 function castVote(playerId: string) {
   party.castVote(playerId)
+  playSfx('ui.select')
   vibrate()
 }
 
 function handleBuzz() {
   party.buzzIn()
+  playSfx('party.buzz')
   vibrate()
 }
 
 function handleTapCount(count: number) {
   // For mash mode, continuously update
   party.submitAnswer(count)
+  // Don't play SFX on every tap to avoid audio spam
 }
 
 function handleHoldDuration(duration: number) {
   party.submitAnswer(duration)
+  playSfx('ui.select')
   vibrate()
 }
 
@@ -120,11 +132,13 @@ function handleDrawStroke(strokeData: string) {
 
 function handleDrawingSubmit(imageData: string) {
   party.submitDrawing(imageData)
+  playSfx('ui.select')
   vibrate()
 }
 
 function handleGuessSubmit(guess: string) {
   party.submitGuess(guess)
+  playSfx('ui.select')
   vibrate()
 }
 
@@ -171,6 +185,7 @@ watch(() => party.state.lastFeedback, (fb) => {
   if (fb) {
     feedback.value = fb
     vibrate(fb === 'correct' ? 100 : 50)
+    playSfx(fb === 'correct' ? 'party.correct' : 'party.wrong')
 
     // Clear feedback after delay
     setTimeout(() => {
@@ -249,7 +264,7 @@ const gameInfo = computed(() => {
       <!-- Main Content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- LOBBY PHASE -->
-        <PartyControllerControllerWaiting
+        <ControllerWaiting
           v-if="party.phase.value === 'lobby'"
           :player="party.state.currentPlayer"
           :players="party.players.value"
@@ -269,7 +284,7 @@ const gameInfo = computed(() => {
         <!-- ROUND ACTIVE PHASE -->
         <template v-else-if="party.phase.value === 'round_active' || party.phase.value === 'round_start'">
           <!-- Trivia - Buttons -->
-          <PartyControllerControllerButtons
+          <ControllerButtons
             v-if="party.state.controllerType === 'buttons' && currentPrompt"
             :options="currentPrompt.options"
             :disabled="party.state.hasSubmitted"
@@ -278,7 +293,7 @@ const gameInfo = computed(() => {
           />
 
           <!-- Voting -->
-          <PartyControllerControllerVoting
+          <ControllerVoting
             v-else-if="party.state.controllerType === 'vote'"
             :players="party.players.value"
             :current-player-id="party.state.currentPlayer?.id || ''"
@@ -288,7 +303,7 @@ const gameInfo = computed(() => {
           />
 
           <!-- Drawing -->
-          <PartyControllerControllerDrawCanvas
+          <ControllerDrawCanvas
             v-else-if="party.state.controllerType === 'draw'"
             :word="currentPrompt?.word"
             :disabled="party.state.hasSubmitted"
@@ -297,7 +312,7 @@ const gameInfo = computed(() => {
           />
 
           <!-- Text Input (for guessing in draw mode when not drawer) -->
-          <PartyControllerControllerTextInput
+          <ControllerTextInput
             v-else-if="party.state.controllerType === 'text'"
             placeholder="Type your guess..."
             :disabled="party.state.hasSubmitted"
@@ -306,7 +321,7 @@ const gameInfo = computed(() => {
           />
 
           <!-- Buzzer / Reaction -->
-          <PartyControllerControllerBuzzer
+          <ControllerBuzzer
             v-else-if="party.state.controllerType === 'buzzer'"
             :mode="currentPrompt?.type === 'mash_buttons' ? 'mash' : currentPrompt?.type === 'hold_duration' ? 'hold' : 'tap_once'"
             :disabled="party.state.hasSubmitted && currentPrompt?.type !== 'mash_buttons'"
