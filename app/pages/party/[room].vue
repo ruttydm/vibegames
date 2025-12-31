@@ -17,6 +17,70 @@ const roomCode = route.params.room as string
 const { playerName, initPlayer } = usePlayer()
 const party = usePartyGame()
 
+// ============================================
+// NYE Countdown & Decorations
+// ============================================
+const nyeCountdown = ref('')
+const isHappyNewYear = ref(false)
+const targetYear = ref(new Date().getFullYear() + 1)
+
+const updateNYECountdown = () => {
+  const now = new Date()
+  // If in December, target Jan 1 of next year
+  let nye: Date
+  if (now.getMonth() === 11) {
+    nye = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0)
+    targetYear.value = now.getFullYear() + 1
+  } else if (now.getMonth() === 0 && now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 30) {
+    // Within 30 mins after midnight on Jan 1
+    nye = new Date(now.getFullYear(), 0, 1, 0, 0, 0)
+    targetYear.value = now.getFullYear()
+  } else {
+    nye = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0)
+    targetYear.value = now.getFullYear() + 1
+  }
+
+  const diff = nye.getTime() - now.getTime()
+
+  if (diff <= 0 && diff > -30 * 60 * 1000) {
+    nyeCountdown.value = 'HAPPY NEW YEAR!'
+    isHappyNewYear.value = true
+    return
+  }
+
+  isHappyNewYear.value = false
+
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+  if (hours > 24) {
+    const days = Math.floor(hours / 24)
+    nyeCountdown.value = `${days}d ${hours % 24}h`
+  } else if (hours > 0) {
+    nyeCountdown.value = `${hours}h ${minutes}m ${seconds}s`
+  } else {
+    nyeCountdown.value = `${minutes}m ${seconds}s`
+  }
+}
+
+// Pre-compute confetti particles
+const confettiParticles = Array.from({ length: 25 }, () => ({
+  left: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 20}s`,
+  animationDuration: `${10 + Math.random() * 15}s`
+}))
+
+let nyeInterval: ReturnType<typeof setInterval>
+onMounted(() => {
+  updateNYECountdown()
+  nyeInterval = setInterval(updateNYECountdown, 1000)
+})
+
+onUnmounted(() => {
+  if (nyeInterval) clearInterval(nyeInterval)
+})
+
 // Game data
 const triviaQuestions = ref<TriviaQuestion[]>([])
 const votingPrompts = ref<string[]>([])
@@ -388,7 +452,33 @@ const currentPrompt = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-arcade-bg text-white p-4 md:p-8">
+  <div class="min-h-screen bg-arcade-bg text-white p-4 md:p-8 relative overflow-hidden">
+    <!-- NYE Confetti Background -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div
+        v-for="(particle, i) in confettiParticles"
+        :key="i"
+        class="confetti-particle"
+        :style="particle"
+      />
+    </div>
+
+    <!-- NYE Countdown Corner Widget -->
+    <div
+      class="fixed top-4 right-4 z-40 p-3 bg-arcade-surface/80 backdrop-blur-sm border rounded-lg transition-all"
+      :class="isHappyNewYear ? 'border-neon-yellow animate-pulse shadow-[0_0_20px_rgba(255,215,0,0.5)]' : 'border-neon-pink/30'"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-xl">{{ isHappyNewYear ? '🎆' : '🎇' }}</span>
+        <div class="text-right">
+          <p class="font-pixel text-[10px] text-neon-pink">{{ targetYear }}</p>
+          <p class="font-pixel text-xs" :class="isHappyNewYear ? 'text-neon-yellow animate-bounce' : 'text-neon-cyan'">
+            {{ nyeCountdown }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <NuxtLink to="/party" class="text-neon-cyan/70 hover:text-neon-cyan font-retro text-sm flex items-center gap-2">
@@ -396,7 +486,7 @@ const currentPrompt = computed(() => {
         Leave Party
       </NuxtLink>
 
-      <div class="text-center">
+      <div v-if="party.state.room" class="text-center">
         <p class="font-pixel text-neon-yellow text-xl">{{ party.roomCode }}</p>
       </div>
 
@@ -405,8 +495,16 @@ const currentPrompt = computed(() => {
       </div>
     </div>
 
+    <!-- Loading state while connecting -->
+    <div v-if="!party.state.room" class="flex items-center justify-center min-h-[60vh]">
+      <div class="text-center">
+        <Icon name="mdi:loading" class="w-16 h-16 text-neon-cyan animate-spin mb-4" />
+        <p class="font-retro text-white/70">Creating party...</p>
+      </div>
+    </div>
+
     <!-- LOBBY PHASE -->
-    <div v-if="party.phase.value === 'lobby'" class="animate-fade-in">
+    <div v-else-if="party.phase.value === 'lobby'" class="animate-fade-in">
       <PartyHostPartyLobby
         :room-code="party.roomCode.value || ''"
         :players="party.players.value"
@@ -607,5 +705,59 @@ const currentPrompt = computed(() => {
 
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
+}
+
+/* NYE Confetti */
+.confetti-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(45deg, #ff2e63, #00fff5, #ffd700);
+  animation: confetti-fall linear infinite;
+  opacity: 0.4;
+}
+
+.confetti-particle:nth-child(odd) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.confetti-particle:nth-child(3n) {
+  background: #ffd700;
+}
+
+.confetti-particle:nth-child(5n) {
+  background: #ff2e63;
+}
+
+.confetti-particle:nth-child(7n) {
+  background: #00fff5;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.4;
+  }
+  25% {
+    transform: translateY(25vh) translateX(20px) rotate(180deg);
+  }
+  50% {
+    transform: translateY(50vh) translateX(-15px) rotate(360deg);
+  }
+  75% {
+    transform: translateY(75vh) translateX(18px) rotate(540deg);
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(110vh) translateX(-10px) rotate(720deg);
+    opacity: 0;
+  }
 }
 </style>

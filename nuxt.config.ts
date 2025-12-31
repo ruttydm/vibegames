@@ -19,7 +19,9 @@ export default defineNuxtConfig({
       { path: '~/components/ui', pathPrefix: false },
       { path: '~/components/layout', pathPrefix: false },
       { path: '~/components/game', pathPrefix: false },
-      { path: '~/components/party', pathPrefix: true }
+      { path: '~/components/party/host', prefix: 'PartyHost' },
+      { path: '~/components/party/shared', prefix: 'PartyShared' },
+      { path: '~/components/party/controller', prefix: 'PartyController' }
     ]
   },
 

@@ -8,6 +8,7 @@ const roomCode = route.params.room as string
 
 const { playerName, initPlayer } = usePlayer()
 const party = usePartyGame()
+const { playSfx } = useAudio()
 
 // UI State
 const isLoading = ref(true)
@@ -20,12 +21,21 @@ onMounted(async () => {
 
   try {
     await party.joinParty(roomCode, playerName.value)
-    isLoading.value = false
+    // Wait for room to be set before hiding loading
+    // The joinParty sends a message but response comes async
   } catch (e) {
     error.value = 'Failed to join party'
     isLoading.value = false
   }
 })
+
+// Watch for successful join (when room is populated)
+watch(() => party.state.room, (room) => {
+  if (room && isLoading.value) {
+    isLoading.value = false
+    playSfx('party.join')
+  }
+}, { immediate: true })
 
 // Handle errors
 watch(() => party.state.error, (newError) => {
