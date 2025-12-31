@@ -292,8 +292,9 @@ class PartyManager {
       timestamp: Date.now()
     })
 
+    // Only check non-host players for "all submitted" since host doesn't play
     const allSubmitted = Array.from(room.players.values())
-      .filter(p => p.connected)
+      .filter(p => p.connected && !p.isHost)
       .every(p => p.hasSubmitted)
 
     return { room, allSubmitted }
@@ -421,6 +422,7 @@ class PartyManager {
     streak: number
     connected: boolean
     hasSubmitted: boolean
+    lastSubmission: any
   }> {
     return Array.from(room.players.values()).map(p => ({
       id: p.id,
@@ -433,7 +435,8 @@ class PartyManager {
       roundScore: p.roundScore,
       streak: p.streak,
       connected: p.connected,
-      hasSubmitted: p.hasSubmitted
+      hasSubmitted: p.hasSubmitted,
+      lastSubmission: p.lastSubmission
     }))
   }
 

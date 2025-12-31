@@ -477,11 +477,12 @@ export default defineWebSocketHandler({
           return
         }
 
-        // Check if enough players
-        if (room.players.size < 2) {
+        // Check if enough players (at least 1 non-host player)
+        const gamePlayersCount = Array.from(room.players.values()).filter(p => !p.isHost).length
+        if (gamePlayersCount < 1) {
           peer.send(JSON.stringify({
             type: 'error',
-            payload: { message: 'Need at least 2 players to start' }
+            payload: { message: 'Need at least 1 player to start' }
           }))
           return
         }
@@ -583,6 +584,9 @@ export default defineWebSocketHandler({
         if (result) {
           const { room, allSubmitted } = result
 
+          // Count only non-host players for accurate submission tracking
+          const gamePlayersCount = Array.from(room.players.values()).filter(p => !p.isHost).length
+
           // Confirm to submitter
           peer.send(JSON.stringify({
             type: 'party_answer_received',
@@ -595,7 +599,7 @@ export default defineWebSocketHandler({
             payload: {
               playerId: peer.id,
               submittedCount: room.miniGame?.submissions.size || 0,
-              totalPlayers: room.players.size,
+              totalPlayers: gamePlayersCount,
               allSubmitted,
               players: partyManager.getSerializablePlayers(room)
             }
@@ -611,6 +615,9 @@ export default defineWebSocketHandler({
         if (result) {
           const { room, allSubmitted } = result
 
+          // Count only non-host players for accurate submission tracking
+          const gamePlayersCount = Array.from(room.players.values()).filter(p => !p.isHost).length
+
           peer.send(JSON.stringify({
             type: 'party_vote_received',
             payload: { success: true, votedFor: targetPlayerId }
@@ -621,7 +628,7 @@ export default defineWebSocketHandler({
             payload: {
               playerId: peer.id,
               submittedCount: room.miniGame?.submissions.size || 0,
-              totalPlayers: room.players.size,
+              totalPlayers: gamePlayersCount,
               allSubmitted,
               players: partyManager.getSerializablePlayers(room)
             }

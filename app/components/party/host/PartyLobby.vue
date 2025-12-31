@@ -3,12 +3,15 @@ import type { PartyPlayer } from '~/composables/usePartyGame'
 import QRCodeDisplay from '~/components/party/shared/QRCodeDisplay.vue'
 import PlayerAvatar from '~/components/party/shared/PlayerAvatar.vue'
 
-defineProps<{
+const props = defineProps<{
   roomCode: string
   players: PartyPlayer[]
   canStart: boolean
   isHost: boolean
 }>()
+
+// Game players are non-host players who actually participate
+const gamePlayers = computed(() => props.players.filter(p => !p.isHost))
 
 const emit = defineEmits<{
   start: []
@@ -29,13 +32,13 @@ const emit = defineEmits<{
     <!-- Players Section -->
     <div class="w-full">
       <h3 class="text-lg font-pixel text-neon-yellow text-center mb-4">
-        Players ({{ players.length }}/6)
+        Players ({{ gamePlayers.length }}/6)
       </h3>
 
       <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
-        <!-- Connected Players -->
+        <!-- Game Players (non-host) -->
         <div
-          v-for="player in players"
+          v-for="player in gamePlayers"
           :key="player.id"
           class="relative"
         >
@@ -50,9 +53,9 @@ const emit = defineEmits<{
             show-status
           />
 
-          <!-- Kick button (host only, can't kick self) -->
+          <!-- Kick button (host only) -->
           <button
-            v-if="isHost && !player.isHost"
+            v-if="isHost"
             @click="emit('kick', player.id)"
             class="absolute -top-2 -left-2 p-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-full transition-colors"
             title="Remove player"
@@ -63,7 +66,7 @@ const emit = defineEmits<{
 
         <!-- Empty Slots -->
         <div
-          v-for="i in (6 - players.length)"
+          v-for="i in (6 - gamePlayers.length)"
           :key="`empty-${i}`"
           class="flex flex-col items-center gap-1"
         >
@@ -76,10 +79,10 @@ const emit = defineEmits<{
     </div>
 
     <!-- Ready Status -->
-    <div v-if="players.length >= 2" class="text-center">
+    <div v-if="gamePlayers.length >= 1" class="text-center">
       <div class="flex items-center justify-center gap-4 mb-4">
         <div
-          v-for="player in players.filter(p => !p.isHost)"
+          v-for="player in gamePlayers"
           :key="player.id"
           class="flex items-center gap-2 px-3 py-1 rounded-full"
           :class="player.isReady ? 'bg-neon-green/20 border border-neon-green/50' : 'bg-arcade-border/20 border border-arcade-border/50'"
@@ -103,11 +106,11 @@ const emit = defineEmits<{
       :disabled="!canStart"
       class="px-12 py-4 bg-neon-green/20 border-2 border-neon-green text-neon-green font-pixel text-lg rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:enabled:bg-neon-green/30 hover:enabled:shadow-[0_0_30px_rgba(57,255,20,0.5)]"
     >
-      {{ players.length < 2 ? 'WAITING FOR PLAYERS...' : canStart ? 'START PARTY!' : 'WAITING FOR READY...' }}
+      {{ gamePlayers.length < 1 ? 'WAITING FOR PLAYERS...' : canStart ? 'START PARTY!' : 'WAITING FOR READY...' }}
     </button>
 
-    <p v-if="players.length < 2" class="font-retro text-sm text-white/50">
-      Need at least 2 players to start
+    <p v-if="gamePlayers.length < 1" class="font-retro text-sm text-white/50">
+      Need at least 1 player to start
     </p>
   </div>
 </template>

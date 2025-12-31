@@ -11,6 +11,7 @@ import {
 } from '~/games/party/prompts'
 import PartyLobby from '~/components/party/host/PartyLobby.vue'
 import PartyScoreboard from '~/components/party/host/PartyScoreboard.vue'
+import HostDrawingDisplay from '~/components/party/host/HostDrawingDisplay.vue'
 import PlayerAvatar from '~/components/party/shared/PlayerAvatar.vue'
 import NYEFireworks from '~/components/party/shared/NYEFireworks.vue'
 
@@ -98,6 +99,11 @@ const correctAnswer = ref<any>(null)
 const currentSubmissions = ref<Map<string, any>>(new Map())
 const timerInterval = ref<ReturnType<typeof setInterval> | null>(null)
 const timerDisplay = ref(0)
+
+// Drawing game state
+const drawingGuess = ref('')
+const drawingGuessResult = ref<'correct' | 'wrong' | null>(null)
+const drawingRoundEnded = ref(false)
 
 // Initialize connection
 onMounted(async () => {
@@ -189,6 +195,11 @@ function startRound() {
   correctAnswer.value = null
   currentSubmissions.value = new Map()
 
+  // Reset drawing game state
+  drawingGuess.value = ''
+  drawingGuessResult.value = null
+  drawingRoundEnded.value = false
+
   let prompt: any
   let controllerType: ControllerType = 'buttons'
   let duration = 30
@@ -244,7 +255,8 @@ function endRound() {
   // Calculate scores based on game type
   const currentGame = party.state.room?.currentGame
   const scores: Record<string, { points: number; correct: boolean }> = {}
-  const players = party.state.room?.players || []
+  // Only score non-host players (actual game participants)
+  const players = party.gamePlayers.value
 
   switch (currentGame) {
     case 'trivia': {
@@ -327,6 +339,18 @@ function endRound() {
       }
       break
     }
+    case 'drawing': {
+      // If we reach here, time ran out without a correct guess
+      if (!drawingRoundEnded.value) {
+        const word = drawingPrompts.value[currentPromptIndex.value]
+        correctAnswer.value = word
+        // No points awarded if no one guessed
+        players.forEach(p => {
+          scores[p.id] = { points: 0, correct: false }
+        })
+      }
+      break
+    }
   }
 
   party.revealAnswer(correctAnswer.value, scores)
@@ -372,16 +396,21 @@ function advanceGame() {
 
 function handleGuess(playerId: string, guess: string) {
   // For drawing game - check if guess matches word
-  if (party.state.room?.currentGame === 'drawing') {
+  if (party.state.room?.currentGame === 'drawing' && !drawingRoundEnded.value) {
     const currentWord = drawingPrompts.value[currentPromptIndex.value].toLowerCase()
     if (guess.toLowerCase().includes(currentWord)) {
       // Correct guess!
+      drawingRoundEnded.value = true
       const scores: Record<string, { points: number; correct: boolean }> = {
         [playerId]: { points: 150, correct: true }
       }
       party.revealAnswer(currentWord, scores)
 
       // End this round early
+      if (timerInterval.value) {
+        clearInterval(timerInterval.value)
+        timerInterval.value = null
+      }
       setTimeout(() => {
         party.setPhase('round_scoreboard')
         party.showScoreboard()
@@ -389,6 +418,44 @@ function handleGuess(playerId: string, guess: string) {
       }, 2000)
     }
   }
+}
+
+function submitDrawingGuess() {
+  if (!drawingGuess.value.trim() || drawingRoundEnded.value) return
+
+  const currentWord = drawingPrompts.value[currentPromptIndex.value].toLowerCase()
+  const guess = drawingGuess.value.trim().toLowerCase()
+
+  if (guess === currentWord || currentWord.includes(guess) || guess.includes(currentWord)) {
+    // Correct guess from host screen!
+    drawingGuessResult.value = 'correct'
+    drawingRoundEnded.value = true
+
+    // Award points to all players who were drawing (everyone gets points for successful round)
+    const scores: Record<string, { points: number; correct: boolean }> = {}
+    party.gamePlayers.value.forEach(p => {
+      scores[p.id] = { points: 50, correct: true }
+    })
+    party.revealAnswer(currentWord, scores)
+
+    // End this round early
+    if (timerInterval.value) {
+      clearInterval(timerInterval.value)
+      timerInterval.value = null
+    }
+    setTimeout(() => {
+      party.setPhase('round_scoreboard')
+      party.showScoreboard()
+      setTimeout(() => advanceGame(), 3000)
+    }, 2000)
+  } else {
+    drawingGuessResult.value = 'wrong'
+    setTimeout(() => {
+      drawingGuessResult.value = null
+    }, 1500)
+  }
+
+  drawingGuess.value = ''
 }
 
 function returnToLobby() {
@@ -495,7 +562,7 @@ const currentPrompt = computed(() => {
       </div>
 
       <div class="text-right">
-        <p class="font-retro text-white/50 text-sm">{{ party.players.value.length }} players</p>
+        <p class="font-retro text-white/50 text-sm">{{ party.gamePlayers.value.length }} players</p>
       </div>
     </div>
 
@@ -527,10 +594,10 @@ const currentPrompt = computed(() => {
       </h1>
       <p class="font-retro text-white/70 text-lg">Get ready!</p>
 
-      <!-- Player avatars -->
+      <!-- Player avatars (game players only, not host) -->
       <div class="flex gap-4 mt-8">
         <PlayerAvatar
-          v-for="player in party.players.value"
+          v-for="player in party.gamePlayers.value"
           :key="player.id"
           :avatar="player.avatar"
           :color="player.color"
@@ -583,10 +650,10 @@ const currentPrompt = computed(() => {
           {{ currentPrompt }}
         </p>
 
-        <!-- Show who has voted -->
+        <!-- Show who has voted (game players only, no host) -->
         <div class="flex justify-center gap-4 mt-12">
           <PlayerAvatar
-            v-for="player in party.players.value"
+            v-for="player in party.gamePlayers.value"
             :key="player.id"
             :avatar="player.avatar"
             :color="player.color"
@@ -600,14 +667,32 @@ const currentPrompt = computed(() => {
 
       <div v-else-if="party.currentGame.value === 'drawing'" class="max-w-4xl mx-auto">
         <div class="text-center mb-8">
-          <p class="font-retro text-white/70">Drawing:</p>
-          <p class="text-4xl font-pixel text-neon-cyan">{{ currentPrompt }}</p>
+          <p class="font-retro text-white/70 text-lg">Players are drawing a secret word...</p>
+          <p class="font-retro text-neon-cyan/70 text-sm mt-2">Watch and guess what they're drawing!</p>
         </div>
 
-        <!-- Canvas display area -->
-        <div class="bg-white rounded-lg aspect-video max-w-2xl mx-auto border-4 border-neon-cyan/50">
-          <p class="text-arcade-bg font-retro text-center py-20">
-            Drawings appear here in real-time
+        <!-- Player drawings grid -->
+        <HostDrawingDisplay :players="party.gamePlayers.value" />
+
+        <!-- Guess input for spectators -->
+        <div class="mt-8 max-w-md mx-auto">
+          <div class="flex gap-2">
+            <input
+              v-model="drawingGuess"
+              type="text"
+              placeholder="Type a guess..."
+              class="flex-1 px-4 py-3 bg-arcade-surface border-2 border-neon-cyan/30 rounded-lg font-retro text-white focus:border-neon-cyan focus:outline-none"
+              @keyup.enter="submitDrawingGuess"
+            />
+            <button
+              @click="submitDrawingGuess"
+              class="px-6 py-3 bg-neon-cyan/20 border-2 border-neon-cyan text-neon-cyan font-pixel rounded-lg hover:bg-neon-cyan/30 transition-all"
+            >
+              GUESS
+            </button>
+          </div>
+          <p v-if="drawingGuessResult" class="text-center mt-2 font-retro" :class="drawingGuessResult === 'correct' ? 'text-neon-green' : 'text-red-400'">
+            {{ drawingGuessResult === 'correct' ? '🎉 Correct!' : 'Not quite...' }}
           </p>
         </div>
       </div>
@@ -620,10 +705,10 @@ const currentPrompt = computed(() => {
           {{ (currentPrompt as ReactionChallenge).description }}
         </p>
 
-        <!-- Show who has buzzed -->
+        <!-- Show who has buzzed (game players only, no host) -->
         <div class="flex justify-center gap-4 mt-12">
           <PlayerAvatar
-            v-for="player in party.players.value"
+            v-for="player in party.gamePlayers.value"
             :key="player.id"
             :avatar="player.avatar"
             :color="player.color"
@@ -651,12 +736,21 @@ const currentPrompt = computed(() => {
           <PlayerAvatar
             v-for="winnerId in correctAnswer"
             :key="winnerId"
-            :avatar="party.players.value.find(p => p.id === winnerId)?.avatar || '🎉'"
-            :color="party.players.value.find(p => p.id === winnerId)?.color || '#ffd700'"
-            :name="party.players.value.find(p => p.id === winnerId)?.name || 'Winner'"
+            :avatar="party.gamePlayers.value.find(p => p.id === winnerId)?.avatar || '🎉'"
+            :color="party.gamePlayers.value.find(p => p.id === winnerId)?.color || '#ffd700'"
+            :name="party.gamePlayers.value.find(p => p.id === winnerId)?.name || 'Winner'"
             size="lg"
           />
         </div>
+      </div>
+
+      <div v-else-if="party.currentGame.value === 'drawing'" class="text-center">
+        <p class="text-2xl font-retro text-white mb-4">The word was:</p>
+        <p class="text-4xl font-pixel text-neon-cyan">{{ correctAnswer }}</p>
+      </div>
+
+      <div v-else-if="party.currentGame.value === 'reaction'" class="text-center">
+        <p class="text-2xl font-retro text-white mb-4">{{ correctAnswer }}</p>
       </div>
     </div>
 
