@@ -22,6 +22,7 @@ export interface PartyPlayer {
   streak: number
   connected: boolean
   hasSubmitted: boolean
+  lastSubmission?: any
 }
 
 export interface MiniGameState {
@@ -81,13 +82,16 @@ export function usePartyGame() {
   const playerCount = computed(() => sharedState.room?.players.length ?? 0)
   const canStart = computed(() => {
     if (!isHost.value || !sharedState.room) return false
-    if (sharedState.room.players.length < 2) return false
-    return sharedState.room.players.filter(p => !p.isHost).every(p => p.isReady)
+    const nonHostPlayers = sharedState.room.players.filter(p => !p.isHost)
+    if (nonHostPlayers.length < 1) return false
+    return nonHostPlayers.every(p => p.isReady)
   })
   const roomCode = computed(() => sharedState.room?.id ?? null)
   const currentGame = computed(() => sharedState.room?.currentGame ?? null)
   const phase = computed(() => sharedState.room?.phase ?? 'lobby')
   const players = computed(() => sharedState.room?.players ?? [])
+  // Game players - excludes the host who doesn't participate in games
+  const gamePlayers = computed(() => sharedState.room?.players.filter(p => !p.isHost) ?? [])
   const timerRemaining = computed(() => {
     if (!sharedState.room?.timerEndTime) return 0
     const remaining = Math.max(0, sharedState.room.timerEndTime - Date.now())
@@ -450,6 +454,7 @@ export function usePartyGame() {
     currentGame,
     phase,
     players,
+    gamePlayers,
     timerRemaining,
 
     // Connection

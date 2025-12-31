@@ -12,9 +12,9 @@ const emit = defineEmits<{
   vote: [playerId: string]
 }>()
 
-// Filter out self from voting options
+// Filter out self and host from voting options
 const votableePlayers = computed(() => {
-  return props.players.filter(p => p.id !== props.currentPlayerId)
+  return props.players.filter(p => p.id !== props.currentPlayerId && !p.isHost)
 })
 
 function handleVote(playerId: string) {
